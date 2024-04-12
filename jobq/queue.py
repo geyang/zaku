@@ -1,12 +1,12 @@
 from time import time
 from uuid import uuid4
 
+
 class JobQueue(dict):
     def __init__(self, ttl=5):
         """A simple job queue.
 
         Args:
-            data (dict): a dictionary of jobs.
             ttl (int, optional): time to live. Defaults to 5.
         """
         super().__init__()
