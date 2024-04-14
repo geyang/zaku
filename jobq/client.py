@@ -69,7 +69,7 @@ class JobQ(PrefixProto):
             return
 
         data = msgpack.loads(response.content)
-        print("take ==> ", data)
+        # print("take ==> ", data)
         payload = data.get("payload", None)
         return data["job_id"], msgpack.unpackb(payload) if payload else None
 

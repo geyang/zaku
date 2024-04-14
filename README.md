@@ -1,8 +1,5 @@
 # JobQ, a fast Job Queue for ML Workloads
 
-```
-# Getting Started
-
 To get a quick overview of what you can do with `jobq`, check out the following:
 
 - take a look at the basic tutorial or the tutorial for robotics:
@@ -13,7 +10,7 @@ To get a quick overview of what you can do with `jobq`, check out the following:
 Install jobq --- the latest version is `{VERSION}` on [pypi](https://pypi.org/project/jobq/{VERSION}/).
 
 ```python
-pip install -U 'jobq=={VERSION}'
+pip install -U 'jobq[all]=={VERSION}'
 ```
 
 Supposed you have a JobServer running at `localhost:9000`.
@@ -79,8 +76,4 @@ To build the documentations, run
 
 ```shell
 make docs
-```
-
-```
-
 ```

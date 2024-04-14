@@ -49,5 +49,5 @@ publish: convert-rst
 	twine upload dist/*
 test:
 	pwd && \
-	python -m pytest tests --capture=no
+	python -m pytest specs --capture=no
 

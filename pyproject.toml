@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "vuer"
+name = "jobq"
 version = "0.0.29-rc11"
 description = ""
 readme = "README.md"
@@ -57,10 +57,10 @@ dev = [
 
 [project.scripts]
 # Note, add entrypoint name to scripts/completions/install.py to include CLI completion
-vuer = "vuer:entrypoint"
+jobq = "jobq.server"
 
 [tool.setuptools.packages.find]
-include = ["vuer*"]
+include = ["jobq*"]
 
 [tool.setuptools.package-data]
 "*" = ["*.json"]
@@ -91,16 +91,16 @@ disable = [
 
 #pytest
 #[tool.pytest.ini_options]
-#addopts = "-n=4 --typeguard-packages=vuer --disable-warnings"
+#addopts = "-n=4 --typeguard-packages=jobq --disable-warnings"
 #testpaths = [
 #    "tests",
 #]
 
 # pyright
 [tool.pyright]
-include = ["vuer"]
+include = ["jobq"]
 exclude = ["**/node_modules", "**/__pycache__", ]
-#ignore = ["nerf_vuer"]
+#ignore = ["nerf_jobq"]
 defineConstant = { DEBUG = true }
 
 reportMissingImports = true

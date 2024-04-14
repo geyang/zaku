@@ -10,7 +10,7 @@ from jobq import JobQ
 queue = JobQ()
 ```
 ```
-{'host': 'http://localhost:9000', 'name': 'jq-1f936686-44c2-4e0f-8b94-f770bf5228ec', 'ttl': 5, 'no_init': None}
+{'host': 'http://localhost:9000', 'name': 'jq-5f122009-9c53-4e62-83c4-8c935a544a4f', 'ttl': 5, 'no_init': None}
 ```
 
 
@@ -30,7 +30,7 @@ queue.add({"seed": 200, "data": [1, 2, 3]}, key=count)
 job_id, job_config = queue.take()
 ```
 ```
-d4500aab-7793-431b-bee3-84c2d24455b5 {'seed': 100, 'data': [1, 2, 3]}
+81eaae73-b4ec-4f47-be75-5e43c19aa505 {'seed': 100, 'data': [1, 2, 3]}
 ```
 
 

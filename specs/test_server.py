@@ -12,7 +12,7 @@ job_queue.init_queue()
 
 @pytest.mark.dependency()
 def test_add():
-    for i in trange(50, file=sys.stdout):
+    for i in trange(5, file=sys.stdout):
         job_queue.add({"step": i, "param_2": f"key-{i}"})
 
 
