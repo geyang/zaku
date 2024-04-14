@@ -3,7 +3,7 @@ from time import time
 from uuid import uuid4
 
 
-class SimpleJobQueue(dict):
+class SimpleTaskQueue(dict):
     def __init__(self, ttl=5):
         """A simple job queue.
 

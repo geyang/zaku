@@ -1,4 +1,4 @@
-<h1 class="full-width" style="font-size: 49px">Welcome to <code style="font-family: sans-serif; background-clip: text; color: transparent; background-image: linear-gradient(to right, rgb(96 218 190), rgb(250 131 11), rgb(255 90 66));">Zaku</code><span style="font-size: 0.3em; margin-left: -0.5em; margin-right:-0.4em;">｣</span></h1>
+<h1 class="full-width" style="font-size: 49px"><code style="font-family: sans-serif; background-clip: text; color: transparent; background-image: linear-gradient(to right, rgb(96 218 190), rgb(250 131 11), rgb(255 90 66));">Zaku</code> Task Queue<span style="font-size: 0.3em; margin-left: 0.5em; margin-right:-0.4em;">｣</span></h1>
 
 <link rel="stylesheet" href="_static/title_resize.css">
 
@@ -12,9 +12,9 @@ Here is an example of how to add and retrieve jobs from Zaku.
 For a more comprehensive list of examples, please refer to the [examples](examples/01_simple_queue) page.
 
 ```python
-from zaku import JobQ
+from zaku import TaskQ
 
-app = JobQ(host="localhost", port=8000**)
+app = TaskQ(host="localhost", port=8000**)
 
 while True:
     job = app.take()
@@ -60,7 +60,6 @@ For a comprehensive list of data types, please refer to the [API documentation o
    :caption: Tutorials
    :hidden:
    
-   tutorials/basics.md
    tutorials/setting_up_server.md
    
 .. toctree::
@@ -75,7 +74,7 @@ For a comprehensive list of data types, please refer to the [API documentation o
    :caption: Python API
    :hidden:
    
-   zaku JobQ Client <api/zaku.md>
+   zaku TaskQ Client <api/zaku.md>
    zaku.base <api/base.md>
    zaku.interfaces — Type Interafce <api/interfaces.md>
    zaku.server — JobServer <api/server.md>

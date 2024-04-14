@@ -1,2 +1,2 @@
-# from .server import JobQServer
-from .client import JobQ
+# from .server import TaskQServer
+from .client import TaskQ

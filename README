@@ -1,4 +1,4 @@
-JobQ, a fast Job Queue for ML Workloads
+TaskQ, a fast Job Queue for ML Workloads
 =======================================
 
 To get a quick overview of what you can do with ``zaku``, check out the
@@ -6,7 +6,7 @@ following:
 
 -  take a look at the basic tutorial or the tutorial for robotics:
 
-   -  `JobQ Basics <tutorials/basics>`__
+   -  `TaskQ Basics <tutorials/basics>`__
    -  `Tutorial for Roboticists <tutorials/robotics>`__
 
 -  or try to take a look at the example gallery
@@ -25,9 +25,9 @@ Supposed you have a JobServer running at ``localhost:9000``.
 
 .. code-block:: python
 
-   from zaku import JobQ
+   from zaku import TaskQ
 
-   queue = JobQ(name="my-test-queue", host="localhost", port=9000)
+   queue = TaskQ(name="my-test-queue", host="localhost", port=9000)
 
    for i in range(100):
        queue.add_job({"job_id": i, "seed": i * 100})
@@ -36,9 +36,9 @@ Supposed you have a JobServer running at ``localhost:9000``.
 
 .. code-block:: python
 
-   from zaku import JobQ
+   from zaku import TaskQ
 
-   queue = JobQ(name="my-test-queue", host="localhost", port=9000)
+   queue = TaskQ(name="my-test-queue", host="localhost", port=9000)
 
    job_id, job = queue.take()
 
@@ -57,14 +57,14 @@ other workers can retry. You can do so by calling
 
    queue.mark_reset()
 
-Now, we offer a context manager ``JobQ.pop``, which automatically
+Now, we offer a context manager ``TaskQ.pop``, which automatically
 catches exceptions and resets the job (or marks it complete).
 
 .. code-block:: python
 
-   from zaku import JobQ
+   from zaku import TaskQ
 
-   queue = JobQ(name="my-test-queue", host="localhost", port=9000)
+   queue = TaskQ(name="my-test-queue", host="localhost", port=9000)
 
    with queue.pop() as job:
      if job is None:
@@ -72,7 +72,7 @@ catches exceptions and resets the job (or marks it complete).
      
      print("Retrieved job:", job)
 
-Developing JobQ (Optional)
+Developing TaskQ (Optional)
 --------------------------
 
 If you want to develop zaku, you can install it in editable mode plus

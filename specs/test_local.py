@@ -3,9 +3,9 @@ from pprint import pformat
 
 import pytest
 
-from zaku.job_queue import SimpleJobQueue
+from zaku.job_queue import SimpleTaskQueue
 
-job_queue = SimpleJobQueue()
+job_queue = SimpleTaskQueue()
 
 for i in range(5):
     job_queue.add({"step": i, "param_2": f"key-{i}"})

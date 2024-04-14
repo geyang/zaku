@@ -7,7 +7,7 @@ import requests
 from params_proto import PrefixProto, Proto, Flag
 
 
-class JobQ(PrefixProto):
+class TaskQ(PrefixProto):
     host: str = Proto(
         "http://localhost:9000",
         help="host end point, including protocol and port.",

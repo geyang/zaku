@@ -8,16 +8,16 @@ from redis.commands.search.indexDefinition import IndexDefinition, IndexType
 from redis.commands.search.query import Query, NumericFilter
 
 
-class JobQueueExample(PrefixProto):
+class TaskQueueExample(PrefixProto):
     host = Proto(env="REDIS_HOST", default="localhost")
     port = Proto(env="REDIS_PORT", default=6379)
     password = Proto(None, env="REDIS_PASSWORD")
     db = Proto(env="REDIS_DB", default=0)
 
 
-pprint(vars(JobQueueExample))
+pprint(vars(TaskQueueExample))
 
-r = redis.Redis(**vars(JobQueueExample))
+r = redis.Redis(**vars(TaskQueueExample))
 
 # r = redis.Redis(host='localhost', port=6379)
 user1 = {

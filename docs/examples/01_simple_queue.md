@@ -5,9 +5,9 @@ This example shows you how upload and download data
 
 
 ```python
-from zaku import JobQ
+from zaku import TaskQ
 
-queue = JobQ()
+queue = TaskQ()
 ```
 ```
 {'host': 'http://localhost:9000', 'name': 'jq-121c8aad-7d85-4cfd-9116-7452744a0257', 'ttl': 5, 'no_init': None}

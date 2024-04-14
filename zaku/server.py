@@ -17,7 +17,7 @@ class Redis(PrefixProto):
 
 
 class QServer(ParamsProto, Server):
-    """JobQ Server
+    """TaskQ Server
 
     This is the server for the Vuer client.
 
@@ -42,7 +42,7 @@ class QServer(ParamsProto, Server):
     .. automethod:: run
     """
 
-    prefix = "JobQ-queues"
+    prefix = "TaskQ-queues"
 
     # Queue Parameters
     queue_len = 100  # use a max length to avoid the memory from blowing up.

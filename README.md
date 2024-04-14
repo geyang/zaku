@@ -4,7 +4,6 @@ To get a quick overview of what you can do with `zaku`, check out the following:
 
 - take a look at the basic tutorial or the tutorial for robotics:
   - [Zaku Basics](tutorials/basics)
-  - [Tutorial for Roboticists](tutorials/robotics)
 - or try to take a look at the example gallery [here](examples/01_simple_queue)
 
 Install zaku --- the latest version is `{VERSION}` on [pypi](https://pypi.org/project/zaku/{VERSION}/).
@@ -18,9 +17,9 @@ Supposed you have a JobServer running at `localhost:9000`.
 **Adding Jobs**:
 
 ```python
-from zaku import JobQ
+from zaku import TaskQ
 
-queue = JobQ(name="my-test-queue", host="localhost", port=9000)
+queue = TaskQ(name="my-test-queue", host="localhost", port=9000)
 
 for i in range(100):
     queue.add_job({"job_id": i, "seed": i * 100})
@@ -29,9 +28,9 @@ for i in range(100):
 **Retrieving Jobs**:
 
 ```python
-from zaku import JobQ
+from zaku import TaskQ
 
-queue = JobQ(name="my-test-queue", host="localhost", port=9000)
+queue = TaskQ(name="my-test-queue", host="localhost", port=9000)
 
 job_id, job = queue.take()
 ```
@@ -48,12 +47,12 @@ Sometimes when you worker responsible for completeing the job encounters a failu
 queue.mark_reset()
 ```
 
-Now, we offer a context manager `JobQ.pop`, which automatically catches exceptions and resets the job (or marks it complete).
+Now, we offer a context manager `TaskQ.pop`, which automatically catches exceptions and resets the job (or marks it complete).
 
 ```python
-from zaku import JobQ
+from zaku import TaskQ
 
-queue = JobQ(name="my-test-queue", host="localhost", port=9000)
+queue = TaskQ(name="my-test-queue", host="localhost", port=9000)
 
 with queue.pop() as job:
   if job is None:
