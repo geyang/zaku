@@ -4,7 +4,7 @@ To get a quick overview of what you can do with `zaku`, check out the following:
 
 - take a look at the basic tutorial or the tutorial for robotics:
   - [Server Setup](tutorials/server_setup.md)
-__- or try to take a look at the example gallery [here](examples/01_simple_queue)
+  - or try to take a look at the example gallery [here](examples/01_simple_queue)
 
 Install zaku --- the latest version is `{VERSION}` on [pypi](https://pypi.org/project/zaku/{VERSION}/).
 
