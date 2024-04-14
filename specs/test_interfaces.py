@@ -1,4 +1,4 @@
-from jobq.interfaces import Job
+from zaku.interfaces import Job
 
 
 def test_job_interface():

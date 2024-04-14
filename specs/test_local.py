@@ -3,7 +3,7 @@ from pprint import pformat
 
 import pytest
 
-from jobq.job_queue import SimpleJobQueue
+from zaku.job_queue import SimpleJobQueue
 
 job_queue = SimpleJobQueue()
 

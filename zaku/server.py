@@ -3,8 +3,8 @@ import redis
 from aiohttp import web
 from params_proto import Proto, PrefixProto, ParamsProto
 
-from jobq.base import Server
-from jobq.interfaces import Job
+from zaku.base import Server
+from zaku.interfaces import Job
 
 DEFAULT_PORT = 9000
 
@@ -132,5 +132,5 @@ class QServer(ParamsProto, Server):
 
 
 if __name__ == "__main__":
-    # from jobq.server import QServer
+    # from zaku.server import QServer
     QServer().run()

@@ -1,7 +1,7 @@
 # `vuer`
 
 ```{eval-rst}
-.. automodule:: jobq
+.. automodule:: zaku
    :members: 
    :show-inheritance: 
    :private-members:

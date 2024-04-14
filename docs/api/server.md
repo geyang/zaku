@@ -2,7 +2,7 @@
 
 
 ```{eval-rst}
-.. automodule:: jobq.server
+.. automodule:: zaku.server
    :imported-members: False
    :members:
    :undoc-members:

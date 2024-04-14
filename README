@@ -17,7 +17,7 @@ Install jobq — the latest version is ``{VERSION}`` on
 
 .. code-block:: python
 
-   pip install -U 'jobq=={VERSION}'
+   pip install -U 'jobq[all]=={VERSION}'
 
 Supposed you have a JobServer running at ``localhost:9000``.
 

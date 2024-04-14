@@ -5,12 +5,12 @@ This example shows you how upload and download data
 
 
 ```python
-from jobq import JobQ
+from zaku import JobQ
 
 queue = JobQ()
 ```
 ```
-{'host': 'http://localhost:9000', 'name': 'jq-5f122009-9c53-4e62-83c4-8c935a544a4f', 'ttl': 5, 'no_init': None}
+{'host': 'http://localhost:9000', 'name': 'jq-121c8aad-7d85-4cfd-9116-7452744a0257', 'ttl': 5, 'no_init': None}
 ```
 
 
@@ -30,7 +30,7 @@ queue.add({"seed": 200, "data": [1, 2, 3]}, key=count)
 job_id, job_config = queue.take()
 ```
 ```
-81eaae73-b4ec-4f47-be75-5e43c19aa505 {'seed': 100, 'data': [1, 2, 3]}
+a859a910-9bcb-4670-afd7-9d9896ae022f {'seed': 100, 'data': [1, 2, 3]}
 ```
 
 

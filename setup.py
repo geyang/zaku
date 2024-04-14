@@ -13,7 +13,7 @@ with open(
     long_description = f.read()
 
 setup(
-    name="jobq",
+    name="zaku",
     packages=find_packages(),
     install_requires=[
         "killport",
@@ -27,8 +27,8 @@ setup(
     description="long_description",
     long_description=long_description,
     author="Ge Yang<ge.ike.yang@gmail.com>",
-    url="https://github.com/geyang/jobq",
+    url="https://github.com/geyang/zaku",
     author_email="ge.ike.yang@gmail.com",
-    package_data={"jobq": ["jobq", "jobq/*.*"]},
+    package_data={"zaku": ["zaku", "zaku/*.*"]},
     version=version,
 )

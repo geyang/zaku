@@ -3,8 +3,8 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "jobq"
-version = "0.0.29-rc11"
+name = "zaku"
+version = "0.0.1"
 description = ""
 readme = "README.md"
 license = { text = "MIT" }
@@ -57,10 +57,10 @@ dev = [
 
 [project.scripts]
 # Note, add entrypoint name to scripts/completions/install.py to include CLI completion
-jobq = "jobq.server"
+zaku = "zaku.server"
 
 [tool.setuptools.packages.find]
-include = ["jobq*"]
+include = ["zaku*"]
 
 [tool.setuptools.package-data]
 "*" = ["*.json"]
@@ -91,16 +91,16 @@ disable = [
 
 #pytest
 #[tool.pytest.ini_options]
-#addopts = "-n=4 --typeguard-packages=jobq --disable-warnings"
+#addopts = "-n=4 --typeguard-packages=zaku --disable-warnings"
 #testpaths = [
 #    "tests",
 #]
 
 # pyright
 [tool.pyright]
-include = ["jobq"]
+include = ["zaku"]
 exclude = ["**/node_modules", "**/__pycache__", ]
-#ignore = ["nerf_jobq"]
+#ignore = ["nerf_zaku"]
 defineConstant = { DEBUG = true }
 
 reportMissingImports = true

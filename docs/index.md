@@ -5,14 +5,14 @@
 JobQ is a light-weight job queue backed by redis for machine learning workloads. 
 
 ```shell
-pip install jobq[all]=={VERSION}
+pip install zaku[all]=={VERSION}
 ```
 
 Here is an example of how to add and retrieve jobs from JobQ. 
 For a more comprehensive list of examples, please refer to the [examples](examples/01_simple_queue) page.
 
 ```python
-from jobq import JobQ
+from zaku import JobQ
 
 app = JobQ(host="localhost", port=8000**)
 
@@ -30,7 +30,7 @@ JobQ is built by researchers at MIT in fields including robotics, computer visio
 - scalable and versatile.
 - Open source, licensed under MIT
 
-To get a quick overview of what you can do with  <code style="font-size: 1.3em; background-clip: text; color: transparent; background-image: linear-gradient(to right, rgb(96 218 190), rgb(250 131 11), rgb(255 90 66));">jobq</code>, check out the following:
+To get a quick overview of what you can do with  <code style="font-size: 1.3em; background-clip: text; color: transparent; background-image: linear-gradient(to right, rgb(96 218 190), rgb(250 131 11), rgb(255 90 66));">zaku</code>, check out the following:
 
 - take a look at the basic tutorial or the tutorial for robotics:
   - [JobQ Basics](tutorials/basics)
@@ -38,9 +38,9 @@ To get a quick overview of what you can do with  <code style="font-size: 1.3em; 
 - or try to take a look at the example gallery [here](examples/01_simple_queue)
 
 For a comprehensive list of visualization components, please refer to
-the [API documentation on Components | jobq](https://docs.jobq.ai/en/latest/api/jobq.html).
+the [API documentation on Components | zaku](https://docs.zaku.ai/en/latest/api/zaku.html).
 
-For a comprehensive list of data types, please refer to the [API documentation on Data Types](https://docs.jobq.ai/en/latest/api/types.html).
+For a comprehensive list of data types, please refer to the [API documentation on Data Types](https://docs.zaku.ai/en/latest/api/types.html).
 
 
 <!-- prettier-ignore-start -->
@@ -52,7 +52,7 @@ For a comprehensive list of data types, please refer to the [API documentation o
    :titlesonly:
 
    Quick Start <quick_start>
-   Report Issues <https://github.com/geyang/jobq/issues?q=is:issue+is:closed>
+   Report Issues <https://github.com/geyang/zaku/issues?q=is:issue+is:closed>
    CHANGE LOG <CHANGE_LOG.md>
    
 .. toctree::
@@ -75,9 +75,9 @@ For a comprehensive list of data types, please refer to the [API documentation o
    :caption: Python API
    :hidden:
    
-   jobq JobQ Client <api/jobq.md>
-   jobq.base <api/base.md>
-   jobq.interfaces — Type Interafce <api/interfaces.md>
-   jobq.server — JobServer <api/server.md>
+   zaku JobQ Client <api/zaku.md>
+   zaku.base <api/base.md>
+   zaku.interfaces — Type Interafce <api/interfaces.md>
+   zaku.server — JobServer <api/server.md>
     
 ```

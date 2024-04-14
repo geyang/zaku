@@ -4,7 +4,7 @@ from pprint import pformat
 import pytest
 from tqdm import trange
 
-from jobq import JobQ
+from zaku import JobQ
 
 job_queue = JobQ(name="jq-debug", host="http://localhost:9000")
 job_queue.init_queue()
