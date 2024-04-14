@@ -1,14 +1,10 @@
-# JobQ, a fast Job Queue for ML Workloads
-
-```
 # Getting Started
 
 To get a quick overview of what you can do with `jobq`, check out the following:
 
 - take a look at the basic tutorial or the tutorial for robotics:
-  - [JobQ Basics](tutorials/basics)
-  - [Tutorial for Roboticists](tutorials/robotics)
-- or try to take a look at the example gallery [here](examples/01_simple_queue)
+  - [Server Setup](tutorials/server_setup.md)
+__- or try to take a look at the example gallery [here](examples/01_simple_queue)
 
 Install jobq --- the latest version is `{VERSION}` on [pypi](https://pypi.org/project/jobq/{VERSION}/).
 
@@ -16,10 +12,9 @@ Install jobq --- the latest version is `{VERSION}` on [pypi](https://pypi.org/pr
 pip install -U 'jobq=={VERSION}'
 ```
 
-Supposed you have a JobServer running at `localhost:9000`.
+Supposed you have a JobServer running at `localhost:9000`. 
 
 **Adding Jobs**:
-
 ```python
 from jobq import JobQ
 
@@ -29,8 +24,7 @@ for i in range(100):
     queue.add_job({"job_id": i, "seed": i * 100})
 ```
 
-**Retrieving Jobs**:
-
+**Retrieving Jobs**: 
 ```python
 from jobq import JobQ
 
@@ -61,7 +55,7 @@ queue = JobQ(name="my-test-queue", host="localhost", port=9000)
 with queue.pop() as job:
   if job is None:
     print("No job available")
-  
+      
   print("Retrieved job:", job)
 ```
 
@@ -69,18 +63,12 @@ with queue.pop() as job:
 
 If you want to develop jobq, you can install it in editable mode plus dependencies
 relevant for building the documentations:
-
 ```shell
 cd jobq
 pip install -e '.[all]'
 ```
-
 To build the documentations, run
-
 ```shell
 make docs
 ```
 
-```
-
-```

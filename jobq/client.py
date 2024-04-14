@@ -9,7 +9,7 @@ from params_proto import PrefixProto, Proto, Flag
 
 class JobQ(PrefixProto):
     host: str = Proto(
-        "http://localhost:8000",
+        "http://localhost:9000",
         help="host end point, including protocol and port.",
     )
 
@@ -38,7 +38,9 @@ class JobQ(PrefixProto):
 
     def add(self, value, *, key=None):
         """Append a job to the queue."""
-        key = key or str(uuid4())
+        if key is None:
+            key = str(uuid4())
+
         json = {
             "queue": self.name,
             "job_id": key,

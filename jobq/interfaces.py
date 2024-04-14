@@ -98,7 +98,8 @@ class Job(SimpleNamespace):
             # value=value,
             ttl=ttl,
         )
-        job_id = job_id or str(uuid4())
+        if job_id is None:
+            job_id = str(uuid4())
 
         entry_key = f"{prefix}:{queue}:{job_id}"
 
