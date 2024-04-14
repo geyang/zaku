@@ -1,5 +1,10 @@
 # Change Log
 
+## 0.0.2
+
+- Change name to Zaku Task Queue
+- Improve documentation, fix broken links
+
 ## 0.0.1
 
 - Add working base implementation
