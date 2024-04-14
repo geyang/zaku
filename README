@@ -1,13 +1,12 @@
-TaskQ, a fast Job Queue for ML Workloads
-=======================================
+Zaku, a fast Task Queue for ML Workloads
+========================================
 
 To get a quick overview of what you can do with ``zaku``, check out the
 following:
 
 -  take a look at the basic tutorial or the tutorial for robotics:
 
-   -  `TaskQ Basics <tutorials/basics>`__
-   -  `Tutorial for Roboticists <tutorials/robotics>`__
+   -  `Zaku Basics <tutorials/basics>`__
 
 -  or try to take a look at the example gallery
    `here <examples/01_simple_queue>`__
@@ -72,7 +71,7 @@ catches exceptions and resets the job (or marks it complete).
      
      print("Retrieved job:", job)
 
-Developing TaskQ (Optional)
+Developing Zaku (Optional)
 --------------------------
 
 If you want to develop zaku, you can install it in editable mode plus

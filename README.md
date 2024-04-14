@@ -1,4 +1,4 @@
-# Zaku, a fast Job Queue for ML Workloads
+# Zaku, a fast Task Queue for ML Workloads
 
 To get a quick overview of what you can do with `zaku`, check out the following:
 
