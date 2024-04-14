@@ -1,14 +1,14 @@
-<h1 class="full-width" style="font-size: 49px">Welcome to <code style="font-family: sans-serif; background-clip: text; color: transparent; background-image: linear-gradient(to right, rgb(96 218 190), rgb(250 131 11), rgb(255 90 66));">JobQ</code><span style="font-size: 0.3em; margin-left: -0.5em; margin-right:-0.4em;">｣</span></h1>
+<h1 class="full-width" style="font-size: 49px">Welcome to <code style="font-family: sans-serif; background-clip: text; color: transparent; background-image: linear-gradient(to right, rgb(96 218 190), rgb(250 131 11), rgb(255 90 66));">Zaku</code><span style="font-size: 0.3em; margin-left: -0.5em; margin-right:-0.4em;">｣</span></h1>
 
 <link rel="stylesheet" href="_static/title_resize.css">
 
-JobQ is a light-weight job queue backed by redis for machine learning workloads. 
+Zaku is a light-weight job queue backed by redis for machine learning workloads. 
 
 ```shell
 pip install zaku[all]=={VERSION}
 ```
 
-Here is an example of how to add and retrieve jobs from JobQ. 
+Here is an example of how to add and retrieve jobs from Zaku. 
 For a more comprehensive list of examples, please refer to the [examples](examples/01_simple_queue) page.
 
 ```python
@@ -24,7 +24,7 @@ while True:
     app.add_job(job)
 ```
 
-JobQ is built by researchers at MIT in fields including robotics, computer vision, and computer graphics.
+Zaku is built by researchers at MIT in fields including robotics, computer vision, and computer graphics.
 
 - light-weight and performant
 - scalable and versatile.
@@ -33,7 +33,7 @@ JobQ is built by researchers at MIT in fields including robotics, computer visio
 To get a quick overview of what you can do with  <code style="font-size: 1.3em; background-clip: text; color: transparent; background-image: linear-gradient(to right, rgb(96 218 190), rgb(250 131 11), rgb(255 90 66));">zaku</code>, check out the following:
 
 - take a look at the basic tutorial or the tutorial for robotics:
-  - [JobQ Basics](tutorials/basics)
+  - [Zaku Basics](tutorials/basics)
   - [Tutorial for Roboticists](tutorials/robotics)
 - or try to take a look at the example gallery [here](examples/01_simple_queue)
 

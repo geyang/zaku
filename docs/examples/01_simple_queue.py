@@ -6,7 +6,7 @@ from cmx import doc
 MAKE_DOCS = os.getenv("MAKE_DOCS", None)
 
 doc @ """
-# JobQ Example
+# Zaku Example
 
 This example shows you how upload and download data
 

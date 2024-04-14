@@ -59,7 +59,7 @@ with queue.pop() as job:
   print("Retrieved job:", job)
 ```
 
-## Developing JobQ (Optional)
+## Developing Zaku (Optional)
 
 If you want to develop zaku, you can install it in editable mode plus dependencies
 relevant for building the documentations:

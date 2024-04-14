@@ -105,7 +105,7 @@ myst_enable_checkboxes = True
 # we use the default.
 # html_title = f"{project} v{version} documentation"
 # we use lower case here, different from project title
-html_title = "JobQ"
+html_title = "Zaku"
 html_theme = "furo"
 html_theme_options: Dict[str, Any] = {
     # "light_css_variables": {

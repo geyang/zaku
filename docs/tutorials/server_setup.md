@@ -1,6 +1,6 @@
 # Setting Up a JobServer
 
-`JobQ` has two main components: a job queue server connected with a redis store, and a python client. 
+`Zaku` has two main components: a job queue server connected with a redis store, and a python client. 
 
 You need to set up a `JobServer` to use the queue. 
 
