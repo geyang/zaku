@@ -1,9 +1,9 @@
-# JobQ, a fast Job Queue for ML Workloads
+# Zaku, a fast Job Queue for ML Workloads
 
 To get a quick overview of what you can do with `zaku`, check out the following:
 
 - take a look at the basic tutorial or the tutorial for robotics:
-  - [JobQ Basics](tutorials/basics)
+  - [Zaku Basics](tutorials/basics)
   - [Tutorial for Roboticists](tutorials/robotics)
 - or try to take a look at the example gallery [here](examples/01_simple_queue)
 
@@ -62,7 +62,7 @@ with queue.pop() as job:
   print("Retrieved job:", job)
 ```
 
-## Developing JobQ (Optional)
+## Developing Zaku (Optional)
 
 If you want to develop zaku, you can install it in editable mode plus dependencies
 relevant for building the documentations:

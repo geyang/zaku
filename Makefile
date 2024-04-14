@@ -15,12 +15,12 @@ wheel:
 	python setup.py bdist_wheel
 dev:
 	make wheel
-	pip install --ignore-installed dist/jobq*.whl
+	pip install --ignore-installed dist/zaku*.whl
 convert-rst:
 	pandoc -s README.md -o README --to=rst
 	sed -i '' 's/code/code-block/g' README
 	sed -i '' 's/\.\. code-block:: log/.. code-block:: text/g' README
-	sed -i '' 's/\.\//https\:\/\/github\.com\/geyang\/jobq\/blob\/master\//g' README
+	sed -i '' 's/\.\//https\:\/\/github\.com\/geyang\/zaku\/blob\/master\//g' README
 	perl -p -i -e 's/\.(jpg|png|gif)/.$$1?raw=true/' README
 	rst-lint README
 resize: # from https://stackoverflow.com/a/28221795/1560241

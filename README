@@ -1,7 +1,7 @@
 JobQ, a fast Job Queue for ML Workloads
 =======================================
 
-To get a quick overview of what you can do with ``jobq``, check out the
+To get a quick overview of what you can do with ``zaku``, check out the
 following:
 
 -  take a look at the basic tutorial or the tutorial for robotics:
@@ -12,12 +12,12 @@ following:
 -  or try to take a look at the example gallery
    `here <examples/01_simple_queue>`__
 
-Install jobq — the latest version is ``{VERSION}`` on
-`pypi <https://pypi.org/project/jobq/%7BVERSION%7D/>`__.
+Install zaku — the latest version is ``{VERSION}`` on
+`pypi <https://pypi.org/project/zaku/%7BVERSION%7D/>`__.
 
 .. code-block:: python
 
-   pip install -U 'jobq[all]=={VERSION}'
+   pip install -U 'zaku[all]=={VERSION}'
 
 Supposed you have a JobServer running at ``localhost:9000``.
 
@@ -25,7 +25,7 @@ Supposed you have a JobServer running at ``localhost:9000``.
 
 .. code-block:: python
 
-   from jobq import JobQ
+   from zaku import JobQ
 
    queue = JobQ(name="my-test-queue", host="localhost", port=9000)
 
@@ -36,7 +36,7 @@ Supposed you have a JobServer running at ``localhost:9000``.
 
 .. code-block:: python
 
-   from jobq import JobQ
+   from zaku import JobQ
 
    queue = JobQ(name="my-test-queue", host="localhost", port=9000)
 
@@ -62,7 +62,7 @@ catches exceptions and resets the job (or marks it complete).
 
 .. code-block:: python
 
-   from jobq import JobQ
+   from zaku import JobQ
 
    queue = JobQ(name="my-test-queue", host="localhost", port=9000)
 
@@ -75,12 +75,12 @@ catches exceptions and resets the job (or marks it complete).
 Developing JobQ (Optional)
 --------------------------
 
-If you want to develop jobq, you can install it in editable mode plus
+If you want to develop zaku, you can install it in editable mode plus
 dependencies relevant for building the documentations:
 
 .. code-block:: shell
 
-   cd jobq
+   cd zaku
    pip install -e '.[all]'
 
 To build the documentations, run
