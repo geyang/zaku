@@ -5,6 +5,9 @@ msgpack
 numpy
 params-proto
 
+# This is needed for the API doc
+redis
+
 sphinx==7.1.2
 furo
 myst_parser
