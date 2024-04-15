@@ -4,8 +4,9 @@
 
 Zaku is a light-weight job queue backed by redis for machine learning workloads. 
 
+**To Install:** note the single quote `'` around the bracket for `zsh`.
 ```shell
-pip install zaku[all]=={VERSION}
+pip install 'zaku[all]=={VERSION}'
 ```
 
 Here is an example of how to add and retrieve jobs from Zaku. 

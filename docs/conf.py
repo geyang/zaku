@@ -6,8 +6,8 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "Vuer"
-copyright = "2023, Ge Yang"
+project = "Zaku"
+copyright = "2024, Ge Yang"
 author = "Ge Yang"
 with open("../VERSION", "r") as f:
     version = f.read()
