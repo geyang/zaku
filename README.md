@@ -12,7 +12,7 @@ Install zaku --- the latest version is `{VERSION}` on [pypi](https://pypi.org/pr
 pip install -U 'zaku[all]=={VERSION}'
 ```
 
-Supposed you have a JobServer running at `localhost:9000`.
+Supposed you have a TaskServer running at `localhost:9000`.
 
 **Adding Jobs**:
 

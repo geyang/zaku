@@ -1,29 +1,89 @@
+from contextlib import contextmanager
+from uuid import uuid4
+
 import msgpack
 import requests
-from contextlib import contextmanager
-# from requests_futures import sessions
 from params_proto import PrefixProto, Proto, Flag
-from uuid import uuid4
 
 
 class TaskQ(PrefixProto, cli=False):
     """TaskQ Client
+    ----------------
 
     This is the client that interacts with the TaskQ server. We do not
     include the configs in the command line because the TaskServer is
     the primary entry point from the command line.
+
+    We do provide the option to load environment variables for these
+    configurations.
+
+    Usage
+    +++++
+
+    .. code-block:: shell
+
+        # Put this into an .env file (without the exports)
+        export ZAKU_URI=http://localhost:9000
+        export ZAKU_QUEUE_NAME=jq-debug-1
+
+    Now you can create a queue like this:
+
+    .. code-block:: python
+
+        queue = TaskQ()
+
+    ::
+
+        Out[2]: {
+            "uri": "http://localhost:9000",
+            "name": "jq-debug-1",
+            "ttl": 5.0
+        }
+
+    Todos
+    +++++
+
+    - [ ] use future_sessions to make the requests async.
+
+    - [x] add a `with` block to pop the job from the queue.
     """
+
     uri: str = Proto(
         "http://localhost:9000",
+        env="ZAKU_URI",
         help="host end point, including protocol and port.",
     )
+    """host endpoint uri, including protocol and port.
+    
+    .. code-block:: python
+    
+        uri: str = Proto(
+            "http://localhost:9000",
+            env="ZAKU_URI",
+        )   
+    """
 
-    name = Proto(
+    name: str = Proto(
         f"jq-{uuid4()}",
+        env="ZAKU_QUEUE_NAME",
         help="""This is the name of the queue. It is unique to the client.""",
     )
-    ttl = Proto(5, help="time to live. Defaults to 5.")
-    no_init = Flag("Flag for skipping the queue creation.")
+    """This is the name of the queue. It is unique to the client. Defaults to a random uuid
+    to avoid collision, but you usually want to supply a name so that it is easier to find
+    the queue. Zaku also reads from environment variables to side-load the configurations.
+    
+    .. code-block:: python
+    
+        name: str = Proto(
+            f"jq-{uuid4()}",
+            env="ZAKU_QUEUE_NAME",
+        )
+    """
+
+    ttl: float = Proto(5.0, "time to live in seconds. Defaults to 5.")
+    """time to live in seconds. Defaults to 5."""
+    no_init: bool = Flag("Flag for skipping the queue creation.")
+    """Flag for skipping the queue creation."""
 
     def __post_init__(self):
         if not self.no_init:

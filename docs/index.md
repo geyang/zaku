@@ -86,9 +86,9 @@ the [API documentation on Components | zaku](https://docs.zaku.ai/en/latest/api/
    :caption: Python API
    :hidden:
    
-   zaku TaskQ Client <api/zaku.md>
+   zaku — TaskQ Client <api/taskq.md>
+   zaku.server — TaskServer <api/server.md>
+   zaku.interfaces — Types <api/interfaces.md>
    zaku.base <api/base.md>
-   zaku.interfaces — Type Interafce <api/interfaces.md>
-   zaku.server — JobServer <api/server.md>
   
 ```

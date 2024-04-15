@@ -1,4 +1,4 @@
-# `zaku.base`
+# <code class="docutils literal notranslate" style="font-size:0.4em; color: #ffaa23"><span class="pre">zaku.base</span></code><br/>Server Base Class
 
 ```{eval-rst}
 .. automodule:: zaku.base

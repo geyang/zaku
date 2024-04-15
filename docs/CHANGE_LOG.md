@@ -2,6 +2,7 @@
 
 ## 0.0.2
 
+- improve documentation
 - Change name to Zaku Task Queue
 - Improve documentation, fix broken links
 

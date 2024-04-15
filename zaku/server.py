@@ -10,10 +10,29 @@ DEFAULT_PORT = 9000
 
 
 class Redis(ParamsProto, prefix="redis", cli_parse=False):
-    host = Proto(env="REDIS_HOST", default="localhost")
-    port = Proto(env="REDIS_PORT", default=6379)
-    password = Proto(env="REDIS_PASSWORD")
-    db = Proto(env="REDIS_DB", default=0)
+    """Redis Configuration for the TaskServer class.
+
+    .. code-block:: shell
+
+        # Put this into an .env file
+        REDIS_HOST=localhost
+        REDIS_PORT=6379
+        REDIS_PASSWORD=xxxxxxxxxxxxxxxxxxx
+        REDIS_DB=0
+
+    CLI Options::
+
+        --redis.host      :str 'localhost'
+        --redis.port      :int 6379
+        --redis.password  :any None
+        --redis.db        :any 0
+    """
+
+    host: str = Proto("localhost", env="REDIS_HOST")
+    port: int = Proto(6379, env="REDIS_PORT")
+    password: str = Proto(env="REDIS_PASSWORD")
+    db: int = Proto(0, env="REDIS_DB")
+    """The logical redis database, from 0 - 15. """
 
 
 class TaskServer(ParamsProto, Server):
@@ -21,25 +40,37 @@ class TaskServer(ParamsProto, Server):
 
     This is the server that maintains the Task Queue.
 
-    Usage::
+    Usage
+
+    .. code-block:: python
 
         app = TaskServer()
         app.run()
 
-    Arguments::
+    CLI Options
 
-        port: int = 8012
-            The port to run the server on.
-        free_port: bool = True
-            If True, kill the port before starting the server.
-        static_root: str = "."
-            The root directory to serve static files from.
-        cors: str = "https://vuer.ai,https://dash.ml,http://localhost:8000,http://
-            The CORS policy to use. Defaults to allow all.
-        cert: str = None
-            The path to the SSL certificate.
+    .. code-block:: shell
 
-    .. automethod:: run
+        python -m zaku.server --help
+
+        -h, --help          show this help message and exit
+        --prefix          :str 'Zaku-task-queues'
+        --queue-len       :int 100
+        --port            :int 9000
+        --free-port       :bool True
+        --static-root     :str '.'
+        --cors            :str 'https://vuer.ai,https://dash.ml,http://lo...
+        --cert            :str None the path to the SSL certificate
+        --key             :str None the path to the SSL key
+        --ca-cert         :str None the trusted root CA certificates
+        --create-queue    :function <function TaskServer.create_queue at 0x102...
+        --add-job         :function <function TaskServer.add_job at 0x102d89800>
+        --reset-handler   :function <function TaskServer.reset_handler at 0x10...
+        --remove-handle   :function <function TaskServer.remove_handle at 0x10...
+        --take-handler    :function <function TaskServer.take_handler at 0x102...
+        --run             :function <function TaskServer.run at 0x102d89a80>
+
+
     """
 
     prefix = "Zaku-task-queues"
@@ -132,5 +163,9 @@ class TaskServer(ParamsProto, Server):
         super().run()
 
 
-if __name__ == "__main__":
+def main():
     TaskServer().run()
+
+
+if __name__ == "__main__":
+    main()
