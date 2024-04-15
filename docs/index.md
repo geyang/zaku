@@ -1,4 +1,4 @@
-<h1 class="full-width" style="font-size: 49px"><code style="font-family: sans-serif; background-clip: text; color: transparent; background-image: linear-gradient(to right, rgb(96 218 190), rgb(250 131 11), rgb(255 90 66));">Zaku</code> Task Queue<span style="font-size: 0.3em; margin-left: 0.5em; margin-right:-0.4em;">｣</span></h1>
+<h1 class="full-width" style="font-size: 49px"><code style="font-family: sans-serif; background-clip: text; color: transparent; background-image: linear-gradient(to right, rgb(255 139 128), rgb(208 6 27), rgb(97 12 0));">Zaku</code> Task Queue<span style="font-size: 0.3em; margin-left: 0.5em; margin-right:-0.4em;">｣</span></h1>
 
 <link rel="stylesheet" href="_static/title_resize.css">
 
@@ -30,7 +30,7 @@ Zaku is built by researchers at MIT in fields including robotics, computer visio
 - scalable and versatile.
 - Open source, licensed under MIT
 
-To get a quick overview of what you can do with  <code style="font-size: 1.3em; background-clip: text; color: transparent; background-image: linear-gradient(to right, rgb(96 218 190), rgb(250 131 11), rgb(255 90 66));">zaku</code>, check out the following:
+To get a quick overview of what you can do with  <code style="font-size: 1.3em; background-clip: text; color: transparent; background-image: linear-gradient(to right, rgb(255 139 128), rgb(208 6 27), rgb(97 12 0));">zaku</code>, check out the following:
 
 - take a look at the basic tutorial or the tutorial for robotics:
   - [Zaku Basics](tutorials/basics)

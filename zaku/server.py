@@ -1,7 +1,7 @@
 import msgpack
 import redis
 from aiohttp import web
-from params_proto import Proto, PrefixProto, ParamsProto
+from params_proto import Proto, ParamsProto
 
 from zaku.base import Server
 from zaku.interfaces import Job
@@ -9,21 +9,21 @@ from zaku.interfaces import Job
 DEFAULT_PORT = 9000
 
 
-class Redis(PrefixProto):
+class Redis(ParamsProto, prefix="redis", cli_parse=False):
     host = Proto(env="REDIS_HOST", default="localhost")
     port = Proto(env="REDIS_PORT", default=6379)
     password = Proto(env="REDIS_PASSWORD")
     db = Proto(env="REDIS_DB", default=0)
 
 
-class QServer(ParamsProto, Server):
-    """TaskQ Server
+class TaskServer(ParamsProto, Server):
+    """TaskServer
 
-    This is the server for the Vuer client.
+    This is the server that maintains the Task Queue.
 
     Usage::
 
-        app = QServer()
+        app = TaskServer()
         app.run()
 
     Arguments::
@@ -42,7 +42,7 @@ class QServer(ParamsProto, Server):
     .. automethod:: run
     """
 
-    prefix = "TaskQ-queues"
+    prefix = "Zaku-task-queues"
 
     # Queue Parameters
     queue_len = 100  # use a max length to avoid the memory from blowing up.
@@ -50,7 +50,7 @@ class QServer(ParamsProto, Server):
     # Server Parameters
     port = DEFAULT_PORT
     free_port = True
-    static_root = "."
+    # static_root = "."
     cors = (
         "https://vuer.ai,https://dash.ml,http://localhost:8000,http://127.0.0.1:8000,*"
     )
@@ -65,7 +65,6 @@ class QServer(ParamsProto, Server):
 
         self.redis = redis.asyncio.Redis(**vars(Redis))
 
-    # @add_route("/", method="POST)
     async def create_queue(self, request: web.Request):
         data = await request.json()
         # print("==>", data)
@@ -132,5 +131,4 @@ class QServer(ParamsProto, Server):
 
 
 if __name__ == "__main__":
-    # from zaku.server import QServer
-    QServer().run()
+    TaskServer().run()

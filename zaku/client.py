@@ -1,13 +1,18 @@
-from contextlib import contextmanager
-from uuid import uuid4
-
 import msgpack
 import requests
+from contextlib import contextmanager
 # from requests_futures import sessions
 from params_proto import PrefixProto, Proto, Flag
+from uuid import uuid4
 
 
-class TaskQ(PrefixProto):
+class TaskQ(PrefixProto, cli=False):
+    """TaskQ Client
+
+    This is the client that interacts with the TaskQ server. We do not
+    include the configs in the command line because the TaskServer is
+    the primary entry point from the command line.
+    """
     host: str = Proto(
         "http://localhost:9000",
         help="host end point, including protocol and port.",
