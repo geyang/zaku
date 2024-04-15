@@ -13,7 +13,7 @@ class TaskQ(PrefixProto, cli=False):
     include the configs in the command line because the TaskServer is
     the primary entry point from the command line.
     """
-    host: str = Proto(
+    uri: str = Proto(
         "http://localhost:9000",
         help="host end point, including protocol and port.",
     )
@@ -38,7 +38,7 @@ class TaskQ(PrefixProto, cli=False):
             self.name = name
 
         print("creating queue:", self.name)
-        res = requests.put(self.host + "/queues", json={"name": self.name})
+        res = requests.put(self.uri + "/queues", json={"name": self.name})
         return res.status_code == 200
 
     def add(self, value, *, key=None):
@@ -54,22 +54,22 @@ class TaskQ(PrefixProto, cli=False):
         }
         # ues msgpack to serialize the data. Bytes are the most efficient.
         res = requests.put(
-            self.host + "/jobs",
+            self.uri + "/jobs",
             msgpack.packb(json, use_bin_type=True),
         )
         if res.status_code == 200:
             return key
-        raise Exception(f"Failed to add job to {self.host}.")
+        raise Exception(f"Failed to add job to {self.uri}.")
 
     def take(self):
         """Grab a job that has not been grabbed from the queue."""
         response = requests.post(
-            self.host + "/jobs",
+            self.uri + "/jobs",
             json={"queue": self.name},
         )
 
         if response.status_code != 200:
-            raise Exception(f"Failed to grab job from {self.host}.")
+            raise Exception(f"Failed to grab job from {self.uri}.")
         elif response.text == "EMPTY":
             return
 
@@ -81,20 +81,20 @@ class TaskQ(PrefixProto, cli=False):
     def mark_done(self, job_id):
         """Mark a job as done."""
         res = requests.delete(
-            self.host + "/jobs", json={"queue": self.name, "job_id": job_id}
+            self.uri + "/jobs", json={"queue": self.name, "job_id": job_id}
         )
         if res.status_code == 200:
             return True
-        raise Exception(f"Failed to mark job as done on {self.host}.")
+        raise Exception(f"Failed to mark job as done on {self.uri}.")
 
     def mark_reset(self, job_id):
         res = requests.post(
-            self.host + "/jobs/reset",
+            self.uri + "/jobs/reset",
             json={"queue": self.name, "job_id": job_id, "op": "reset"},
         )
         if res.status_code == 200:
             return True
-        raise Exception(f"Failed to reset job on {self.host}.")
+        raise Exception(f"Failed to reset job on {self.uri}.")
 
     @contextmanager
     def pop(self):

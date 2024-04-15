@@ -14,7 +14,7 @@ For a more comprehensive list of examples, please refer to the [examples](exampl
 ```python
 from zaku import TaskQ
 
-app = TaskQ(host="localhost", port=8000**)
+app = TaskQ(uri="http://localhost:9000")
 
 while True:
     job = app.take()

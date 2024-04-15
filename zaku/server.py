@@ -50,7 +50,7 @@ class TaskServer(ParamsProto, Server):
     # Server Parameters
     port = DEFAULT_PORT
     free_port = True
-    # static_root = "."
+    static_root = "."
     cors = (
         "https://vuer.ai,https://dash.ml,http://localhost:8000,http://127.0.0.1:8000,*"
     )
@@ -90,7 +90,7 @@ class TaskServer(ParamsProto, Server):
 
     async def remove_handle(self, request: web.Request):
         data = await request.json()
-        print("remove ==>", data)
+        # print("remove ==>", data)
         await Job.remove(self.redis, **data, prefix=self.prefix)
         return web.Response(text="OK")
 

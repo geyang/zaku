@@ -19,7 +19,7 @@ Supposed you have a JobServer running at `localhost:9000`.
 ```python
 from zaku import TaskQ
 
-queue = TaskQ(name="my-test-queue", host="localhost", port=9000)
+queue = TaskQ(name="my-test-queue", uri="http://localhost:9000")
 
 for i in range(100):
     queue.add_job({"job_id": i, "seed": i * 100})
@@ -30,7 +30,7 @@ for i in range(100):
 ```python
 from zaku import TaskQ
 
-queue = TaskQ(name="my-test-queue", host="localhost", port=9000)
+queue = TaskQ(name="my-test-queue", uri="http://localhost:9000")
 
 job_id, job = queue.take()
 ```
@@ -52,7 +52,7 @@ Now, we offer a context manager `TaskQ.pop`, which automatically catches excepti
 ```python
 from zaku import TaskQ
 
-queue = TaskQ(name="my-test-queue", host="localhost", port=9000)
+queue = TaskQ(name="my-test-queue", uri="http://localhost:9000")
 
 with queue.pop() as job:
   if job is None:
