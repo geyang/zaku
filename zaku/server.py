@@ -99,7 +99,9 @@ class TaskServer(ParamsProto, Server):
         # print("take ==> data", data)
         job_id, payload = await Job.take(self.redis, **data, prefix=self.prefix)
         if payload:
-            msg = msgpack.packb({"job_id": job_id, "payload": payload}, use_bin_type=True)
+            msg = msgpack.packb(
+                {"job_id": job_id, "payload": payload}, use_bin_type=True
+            )
             return web.Response(body=msg, status=200)
         else:
             return web.Response(text="EMPTY", status=200)

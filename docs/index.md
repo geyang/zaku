@@ -2,14 +2,19 @@
 
 <link rel="stylesheet" href="_static/title_resize.css">
 
-Zaku is a light-weight job queue backed by redis for machine learning workloads. 
+Zaku is a light-weight task queue backed by redis for machine learning workloads.
 
-**To Install:** note the single quote `'` around the bracket for `zsh`.
+**To Install:** 
+
 ```shell
 pip install 'zaku[all]=={VERSION}'
 ```
 
-Here is an example of how to add and retrieve jobs from Zaku. 
+```{admonition}
+note the single quote `'` around the bracket for `zsh`.
+```
+
+Here is an example of how to add and retrieve jobs from Zaku.
 For a more comprehensive list of examples, please refer to the [examples](examples/01_simple_queue) page.
 
 ```python
@@ -17,12 +22,22 @@ from zaku import TaskQ
 
 app = TaskQ(uri="http://localhost:9000")
 
-while True:
-    job = app.take()
-    if job is None:
-        continue
-    print(job)
-    app.add_job(job)
+task_id, task = app.take()
+try:
+  print("do your things", task)
+except Except as e:
+  app.mark_reset(task_id)
+  raise e
+else:
+  app.mark_done(task_id)
+```
+
+```{admonition} Life Cycle of a task
+:class: tip
+
+A task after being created and inserted into the queue, will be taken by a worker, processed, and then marked as done or reset. If the task is marked as done, it will be removed from the queue. If the task is marked as reset, it will be put back into the queue.
+
+In the event of you forgetting to mark the task as done or reset, the task will be marked as reset after a certain amount of time. This is to prevent the task from being stuck in the queue forever. This time is called `ttl` or time-to-live.
 ```
 
 Zaku is built by researchers at MIT in fields including robotics, computer vision, and computer graphics.
@@ -33,16 +48,12 @@ Zaku is built by researchers at MIT in fields including robotics, computer visio
 
 To get a quick overview of what you can do with  <code style="font-size: 1.3em; background-clip: text; color: transparent; background-image: linear-gradient(to right, rgb(255 139 128), rgb(208 6 27), rgb(97 12 0));">zaku</code>, check out the following:
 
-- take a look at the basic tutorial or the tutorial for robotics:
-  - [Zaku Basics](tutorials/basics)
-  - [Tutorial for Roboticists](tutorials/robotics)
-- or try to take a look at the example gallery [here](examples/01_simple_queue)
+1. take a look at the basic tutorial or the tutorial for robotics:
+  - [Zaku Basics](tutorials/server_setup)
+2. or try to take a look at the example gallery [here](examples/01_simple_queue)
 
-For a comprehensive list of visualization components, please refer to
+For a comprehensive documentation on the API, please refer to
 the [API documentation on Components | zaku](https://docs.zaku.ai/en/latest/api/zaku.html).
-
-For a comprehensive list of data types, please refer to the [API documentation on Data Types](https://docs.zaku.ai/en/latest/api/types.html).
-
 
 <!-- prettier-ignore-start -->
 
@@ -79,5 +90,5 @@ For a comprehensive list of data types, please refer to the [API documentation o
    zaku.base <api/base.md>
    zaku.interfaces — Type Interafce <api/interfaces.md>
    zaku.server — JobServer <api/server.md>
-    
+  
 ```
