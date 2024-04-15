@@ -4,5 +4,6 @@
 .. automodule:: zaku
    :members: 
    :show-inheritance: 
+   :undoc-members:
    :private-members:
 ```
