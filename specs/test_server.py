@@ -67,10 +67,11 @@ def test_torch_tensor():
 @pytest.mark.dependency(depends=["clear_queue"])
 def test_images():
     """Test the ability to send and retrieve pytorch tensors"""
+    from pathlib import Path
     from PIL import Image
     import numpy as np
 
-    img = Image.open("assets/zaku.png")
+    img = Image.open(Path(__file__).parent / "assets/zaku.png")
 
     task = {"step": 0, "png": img}
     task_queue.add(task)

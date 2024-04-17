@@ -12,9 +12,25 @@ Install zaku --- the latest version is `{VERSION}` on [pypi](https://pypi.org/pr
 pip install -U 'zaku[all]=={VERSION}'
 ```
 
-Supposed you have a TaskServer running at `localhost:9000`.
+**Setting Up Zaku Server**
+
+The server script is installed as the command `zaku`. First, take a look at its options by running
+
+```shell
+zaku -h
+```
+
+This should show you the documents on all of the arguments. Now, to setup a zaku task queue server, run the following: This enables access from other than localhost.
+
+````shell
+zaku --host 0.0.0.0 --port 9000
+````
+
+
 
 **Adding Jobs**:
+
+Supposed you have a TaskServer running at `localhost:9000`.
 
 ```python
 from zaku import TaskQ
@@ -68,7 +84,7 @@ relevant for building the documentations:
 
 ```shell
 cd zaku
-pip install -e '.[all]'
+pip install -e '.[dev]'
 ```
 
 To build the documentations, run

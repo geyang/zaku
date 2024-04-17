@@ -15,5 +15,5 @@ for i in range(5):
 async def test_main():
     while job_queue:
         with job_queue.pop() as job:
-            print(f"\nI took job\n{pformat(job)}.")
-            await sleep(0.02)
+            # print(f"\nI took job\n{pformat(job)}.")
+            await sleep(0.0)

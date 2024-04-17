@@ -63,14 +63,7 @@ class TaskServer(ParamsProto, Server):
         --cert            :str None the path to the SSL certificate
         --key             :str None the path to the SSL key
         --ca-cert         :str None the trusted root CA certificates
-        --create-queue    :function <function TaskServer.create_queue at 0x102...
-        --add-job         :function <function TaskServer.add_job at 0x102d89800>
-        --reset-handler   :function <function TaskServer.reset_handler at 0x10...
-        --remove-handle   :function <function TaskServer.remove_handle at 0x10...
-        --take-handler    :function <function TaskServer.take_handler at 0x102...
-        --run             :function <function TaskServer.run at 0x102d89a80>
-
-
+        --REQUEST-MAX-SIZE  :int 100000000 the maximum packet size
     """
 
     prefix = "Zaku-task-queues"
@@ -165,9 +158,9 @@ class TaskServer(ParamsProto, Server):
         super().run()
 
 
-def main():
+def entry_point():
     TaskServer().run()
 
 
 if __name__ == "__main__":
-    main()
+    entry_point()
