@@ -1,19 +1,114 @@
 from time import time
 from types import SimpleNamespace
-from typing import Literal, Any, Tuple, Coroutine
+from typing import Literal, Any, Tuple, Coroutine, Dict, Union
 
 import msgpack
+import numpy as np
 import redis
 from redis import ResponseError
 from redis.commands.search.query import Query
 from redis.commands.search.result import Result
 
+ZType = Literal["numpy.ndarray", "torch.Tensor", "generic"]
 
-# class Message(NamedTuple):
-#     op: Literal["add", "take", "delete", "reset"]
-#     queue: str
-#     key: str
-#     value: Any = None
+
+class ZData:
+    # data_types = {
+    #     "numpy.ndarray":
+    # }
+
+    @staticmethod
+    def encode(data: Union["torch.Tensor", np.ndarray]):
+        """This converts arrays and tensors to z-format."""
+        import torch
+
+        T = type(data)
+        if T is np.ndarray:
+            # need to support other numpy array types, including mask.
+            binary = data.tobytes()
+            return dict(
+                ztype="numpy.ndarray",
+                b=binary,
+                dtype=str(data.dtype),
+                shape=data.shape,
+            )
+        elif T is torch.Tensor:
+            # we always move to CPU
+            np_v = data.cpu().numpy()
+            binary = np_v.tobytes()
+            return dict(
+                ztype="torch.Tensor",
+                b=binary,
+                dtype=str(np_v.dtype),
+                shape=np_v.shape,
+            )
+        else:
+            data
+            # return dict(ztype="generic", b=data)
+
+    @staticmethod
+    def get_ztype(data: Dict) -> Union[ZType, None]:
+        """check if it is z-payload"""
+        if type(data) is dict and "ztype" in data:
+            return data["ztype"]
+
+    @staticmethod
+    def decode(zdata):
+        import torch
+
+        T = ZData.get_ztype(zdata)
+        if not T:
+            return zdata
+        elif T == "numpy.ndarray":
+            # need to support other numpy array types, including mask.
+            array = np.frombuffer(zdata["b"], dtype=zdata["dtype"])
+            array = array.reshape(zdata["shape"])
+            return array
+        elif T == "torch.Tensor":
+            array = np.frombuffer(zdata["b"], dtype=zdata["dtype"])
+            array = array.reshape(zdata["shape"])
+            torch_array = torch.Tensor(array)
+            return torch_array
+        else:
+            raise TypeError(f"ZData type {T} is not supported")
+
+
+class Payload(SimpleNamespace):
+    # class attributes are not serialized.
+    greedy = True
+    """Set to False to avoid greedy convertion, and make it go faster"""
+
+    def __init__(self, _greedy=None, **payload):
+        if _greedy:
+            self.greedy = _greedy
+
+        super().__init__(**payload)
+
+    def serialize(self):
+        payload = self.__dict__
+        # we serialize components key value pairs
+        if self.greedy:
+            data = {k: ZData.encode(v) for k, v in payload.items()}
+            data["_greedy"] = self.greedy
+            msg = msgpack.packb(data, use_bin_type=True)
+        else:
+            msg = msgpack.packb(payload, use_bin_type=True)
+
+        return msg
+
+    @staticmethod
+    def deserialize(payload) -> Dict:
+        unpacked = msgpack.unpackb(payload, raw=False)
+        is_greedy = unpacked.pop("_greedy", None)
+        if not is_greedy:
+            return unpacked
+        else:
+            data = {}
+
+            for k, v in unpacked.items():
+                data[k] = ZData.decode(v)
+
+            return data
 
 
 class Job(SimpleNamespace):
@@ -24,15 +119,6 @@ class Job(SimpleNamespace):
     # payload: bytes = None
     # """This is the binary encoding from the msgpack. """
     ttl: float = None
-
-    def serialize(self):
-        msg = msgpack.packb(vars(self), use_bin_type=True)
-        return msg
-
-    @staticmethod
-    async def deserialize(payload) -> "Job":
-        data = msgpack.unpackb(payload, raw=False)
-        return Job(**data)
 
     @staticmethod
     async def create_queue(r: redis.asyncio.Redis, name, *, prefix, smart=True):
@@ -58,7 +144,6 @@ class Job(SimpleNamespace):
                     prefix=[index_prefix],
                     index_type=IndexType.JSON,
                 ),
-
             )
         except ResponseError:
             if not smart:
@@ -77,7 +162,6 @@ class Job(SimpleNamespace):
     async def remove_queue(r: redis.asyncio.Redis, queue, *, prefix):
         index_name = f"{prefix}:{queue}"
         return await r.ft(index_name).dropindex()
-
 
     @staticmethod
     def add(

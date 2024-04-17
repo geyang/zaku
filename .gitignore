@@ -1,11 +1,11 @@
 .idea
 .DS_Store
+.env
+
 __pycache__
 *.egg-info
 *.eggs
 *.wheels
-
-.env
 
 dist
 build

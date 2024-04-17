@@ -4,6 +4,9 @@ from uuid import uuid4
 import msgpack
 import requests
 from params_proto import PrefixProto, Proto, Flag
+from typing import Dict
+
+from zaku.interfaces import Payload
 
 
 class TaskQ(PrefixProto, cli=False):
@@ -102,15 +105,17 @@ class TaskQ(PrefixProto, cli=False):
         res = requests.put(self.uri + "/queues", json={"name": self.name})
         return res.status_code == 200
 
-    def add(self, value, *, key=None):
+    def add(self, value: Dict, *, key=None):
         """Append a job to the queue."""
         if key is None:
             key = str(uuid4())
 
+        payload = Payload(**value)
+
         json = {
             "queue": self.name,
             "job_id": key,
-            "payload": msgpack.packb(value, use_bin_type=True),
+            "payload": payload.serialize(),
             "ttl": self.ttl,
         }
         # ues msgpack to serialize the data. Bytes are the most efficient.
@@ -137,7 +142,7 @@ class TaskQ(PrefixProto, cli=False):
         data = msgpack.loads(response.content)
         # print("take ==> ", data)
         payload = data.get("payload", None)
-        return data["job_id"], msgpack.unpackb(payload) if payload else None
+        return data["job_id"], Payload.deserialize(payload) if payload else None
 
     def mark_done(self, job_id):
         """Mark a job as done."""
