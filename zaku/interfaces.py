@@ -1,3 +1,4 @@
+from io import BytesIO
 from time import time
 from types import SimpleNamespace
 from typing import Literal, Any, Tuple, Coroutine, Dict, Union
@@ -23,7 +24,17 @@ class ZData:
         import torch
 
         T = type(data)
-        if T is np.ndarray:
+        from PIL.Image import Image
+
+        if isinstance(data, Image):
+            # we always move to CPU
+            with BytesIO() as buffer:
+                # use the format of the Image object, default to PNG.
+                data.save(buffer, format=data.format or "PNG")
+                binary = buffer.getvalue()
+
+            return dict(ztype="image", b=binary)
+        elif T is np.ndarray:
             # need to support other numpy array types, including mask.
             binary = data.tobytes()
             return dict(
@@ -43,7 +54,7 @@ class ZData:
                 shape=np_v.shape,
             )
         else:
-            data
+            return data
             # return dict(ztype="generic", b=data)
 
     @staticmethod
@@ -59,6 +70,13 @@ class ZData:
         T = ZData.get_ztype(zdata)
         if not T:
             return zdata
+        elif T == "image":
+            from PIL import Image
+
+            buff = BytesIO(zdata['b'])
+            image = Image.open(buff)
+            return image
+
         elif T == "numpy.ndarray":
             # need to support other numpy array types, including mask.
             array = np.frombuffer(zdata["b"], dtype=zdata["dtype"])
@@ -66,7 +84,8 @@ class ZData:
             return array
         elif T == "torch.Tensor":
             array = np.frombuffer(zdata["b"], dtype=zdata["dtype"])
-            array = array.reshape(zdata["shape"])
+            # we copy the array because the buffered version is non-writable.
+            array = array.reshape(zdata["shape"]).copy()
             torch_array = torch.Tensor(array)
             return torch_array
         else:
@@ -227,7 +246,17 @@ class Job(SimpleNamespace):
         return response
 
     @staticmethod
-    def reset_stale(r: redis.asyncio.Redis, queue, *, prefix, ttl=None):
+    def reset(r: redis.asyncio.Redis, job_id, queue, *, prefix):
+        entry_name = f"{prefix}:{queue}:{job_id}"
+
+        p = r.pipeline()
+        p = p.json().set(entry_name, "$.status", "created")
+        p = p.json().set(entry_name, "$.grab_ts", None)
+
+        return p.execute()
+
+    @staticmethod
+    def timeout(r: redis.asyncio.Redis, queue, *, prefix, ttl=None):
         index_name = f"{prefix}:{queue}"
 
         if ttl:

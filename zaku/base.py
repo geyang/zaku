@@ -50,6 +50,7 @@ async def handle_file_request(request, root, filename=None):
 
 class Server:
     """Base TCP server"""
+
     host: str = "localhost"
     port: int = 8012
     cors: str = "*"
@@ -62,10 +63,11 @@ class Server:
     ca_cert: str = None
     "the trusted root CA certificates"
 
-    WEBSOCKET_MAX_SIZE = 2 ** 28
+    WEBSOCKET_MAX_SIZE = 2**28
+    REQUEST_MAX_SIZE = 2**28
 
     def __post_init__(self):
-        self.app = web.Application()
+        self.app = web.Application(client_max_size=self.REQUEST_MAX_SIZE)
 
         default = aiohttp_cors.ResourceOptions(
             allow_credentials=True,
@@ -78,10 +80,10 @@ class Server:
         self.cors_context = aiohttp_cors.setup(self.app, defaults=cors_config)
 
     def _route(
-            self,
-            path: str,
-            handler: callable,
-            method: str = "GET",
+        self,
+        path: str,
+        handler: callable,
+        method: str = "GET",
     ):
         route = self.app.router.add_resource(path).add_route(method, handler)
         self.cors_context.add(route)

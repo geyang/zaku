@@ -91,6 +91,8 @@ class TaskServer(ParamsProto, Server):
     key = Proto(None, dtype=str, help="the path to the SSL key")
     ca_cert = Proto(None, dtype=str, help="the trusted root CA certificates")
 
+    REQUEST_MAX_SIZE = Proto(100_000_000, env="WEBSOCKET_MAX_SIZE", help="the maximum packet size")
+
     def __post_init__(self):
         Server.__post_init__(self)
 
@@ -149,10 +151,10 @@ class TaskServer(ParamsProto, Server):
 
         # use the same endpoint for websocket and file serving.
         self._route("/queues", self.create_queue, method="PUT")
-        self._route("/jobs", self.add_job, method="PUT")
-        self._route("/jobs", self.take_handler, method="POST")
-        self._route("/jobs/reset", self.reset_handler, method="POST")
-        self._route("/jobs", self.remove_handle, method="DELETE")
+        self._route("/tasks", self.add_job, method="PUT")
+        self._route("/tasks", self.take_handler, method="POST")
+        self._route("/tasks/reset", self.reset_handler, method="POST")
+        self._route("/tasks", self.remove_handle, method="DELETE")
 
         # serve local files via /static endpoint
         self._static("/static", self.static_root)

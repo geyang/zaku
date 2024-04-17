@@ -120,22 +120,23 @@ class TaskQ(PrefixProto, cli=False):
         }
         # ues msgpack to serialize the data. Bytes are the most efficient.
         res = requests.put(
-            self.uri + "/jobs",
+            self.uri + "/tasks",
             msgpack.packb(json, use_bin_type=True),
         )
         if res.status_code == 200:
             return key
-        raise Exception(f"Failed to add job to {self.uri}.")
+        raise Exception(f"Failed to add job to {self.uri}.", res.content)
 
     def take(self):
         """Grab a job that has not been grabbed from the queue."""
         response = requests.post(
-            self.uri + "/jobs",
+            self.uri + "/tasks",
             json={"queue": self.name},
         )
 
         if response.status_code != 200:
-            raise Exception(f"Failed to grab job from {self.uri}.")
+            raise Exception(f"Failed to grab job from {self.uri}.", response.content)
+
         elif response.text == "EMPTY":
             return
 
@@ -147,20 +148,20 @@ class TaskQ(PrefixProto, cli=False):
     def mark_done(self, job_id):
         """Mark a job as done."""
         res = requests.delete(
-            self.uri + "/jobs", json={"queue": self.name, "job_id": job_id}
+            self.uri + "/tasks", json={"queue": self.name, "job_id": job_id}
         )
         if res.status_code == 200:
             return True
-        raise Exception(f"Failed to mark job as done on {self.uri}.")
+        raise Exception(f"Failed to mark job as done on {self.uri}.", res.content)
 
     def mark_reset(self, job_id):
         res = requests.post(
-            self.uri + "/jobs/reset",
-            json={"queue": self.name, "job_id": job_id, "op": "reset"},
+            self.uri + "/tasks/reset",
+            json={"queue": self.name, "job_id": job_id},
         )
         if res.status_code == 200:
             return True
-        raise Exception(f"Failed to reset job on {self.uri}.")
+        raise Exception(f"Failed to reset job on {self.uri}.", res.content)
 
     @contextmanager
     def pop(self):
