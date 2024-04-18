@@ -8,4 +8,5 @@ class Args(ParamsProto):
     )
 
 
-queue = TaskQ(uri=)
+queue = TaskQ(verbose=True)
+

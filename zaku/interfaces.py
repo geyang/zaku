@@ -1,23 +1,19 @@
 from io import BytesIO
 from time import time
 from types import SimpleNamespace
-from typing import Literal, Any, Tuple, Coroutine, Dict, Union
+from typing import Literal, Any, Tuple, Coroutine, Dict, Union, TYPE_CHECKING
 
 import msgpack
 import numpy as np
-import redis
-from redis import ResponseError
-from redis.commands.search.query import Query
-from redis.commands.search.result import Result
+
+if TYPE_CHECKING:
+    import redis
+    import torch
 
 ZType = Literal["numpy.ndarray", "torch.Tensor", "generic"]
 
 
 class ZData:
-    # data_types = {
-    #     "numpy.ndarray":
-    # }
-
     @staticmethod
     def encode(data: Union["torch.Tensor", np.ndarray]):
         """This converts arrays and tensors to z-format."""
@@ -73,7 +69,7 @@ class ZData:
         elif T == "image":
             from PIL import Image
 
-            buff = BytesIO(zdata['b'])
+            buff = BytesIO(zdata["b"])
             image = Image.open(buff)
             return image
 
@@ -140,7 +136,8 @@ class Job(SimpleNamespace):
     ttl: float = None
 
     @staticmethod
-    async def create_queue(r: redis.asyncio.Redis, name, *, prefix, smart=True):
+    async def create_queue(r: "redis.asyncio.Redis", name, *, prefix, smart=True):
+        from redis import ResponseError
         from redis.commands.search.field import TagField, NumericField
         from redis.commands.search.indexDefinition import IndexType, IndexDefinition
 
@@ -178,13 +175,13 @@ class Job(SimpleNamespace):
             )
 
     @staticmethod
-    async def remove_queue(r: redis.asyncio.Redis, queue, *, prefix):
+    async def remove_queue(r: "redis.asyncio.Redis", queue, *, prefix):
         index_name = f"{prefix}:{queue}"
         return await r.ft(index_name).dropindex()
 
     @staticmethod
     def add(
-        r: redis.asyncio.Redis,
+        r: "redis.asyncio.Redis",
         queue: str,
         *,
         prefix: str,
@@ -213,7 +210,10 @@ class Job(SimpleNamespace):
         return p.execute()
 
     @staticmethod
-    async def take(r: redis.asyncio.Redis, queue, *, prefix) -> Tuple[str, Any]:
+    async def take(r: "redis.asyncio.Redis", queue, *, prefix) -> Tuple[str, Any]:
+        from redis.commands.search.query import Query
+        from redis.commands.search.result import Result
+
         index_name = f"{prefix}:{queue}"
 
         # note: search ranks results via FTIDF. Use aggregation to sort by created_ts
@@ -238,7 +238,7 @@ class Job(SimpleNamespace):
         return job_id, payload
 
     @staticmethod
-    def remove(r: redis.asyncio.Redis, job_id, queue, *, prefix) -> Coroutine:
+    def remove(r: "redis.asyncio.Redis", job_id, queue, *, prefix) -> Coroutine:
         entry_name = f"{prefix}:{queue}:{job_id}"
 
         p = r.pipeline()
@@ -246,7 +246,7 @@ class Job(SimpleNamespace):
         return response
 
     @staticmethod
-    def reset(r: redis.asyncio.Redis, job_id, queue, *, prefix):
+    def reset(r: "redis.asyncio.Redis", job_id, queue, *, prefix):
         entry_name = f"{prefix}:{queue}:{job_id}"
 
         p = r.pipeline()
@@ -256,7 +256,7 @@ class Job(SimpleNamespace):
         return p.execute()
 
     @staticmethod
-    def timeout(r: redis.asyncio.Redis, queue, *, prefix, ttl=None):
+    def timeout(r: "redis.asyncio.Redis", queue, *, prefix, ttl=None):
         index_name = f"{prefix}:{queue}"
 
         if ttl:
