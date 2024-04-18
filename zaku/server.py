@@ -99,14 +99,13 @@ class TaskServer(ParamsProto, Server):
     verbose = Flag("show the list of configurations during launch if True.")
 
     def __post_init__(self):
-        Server.__post_init__(self)
-
         if self.verbose:
             print("========= Arguments =========")
             for k, v in vars(self).items():
                 print(f" {k} = {v},")
             print("-----------------------------")
 
+        Server.__post_init__(self)
         self.redis = redis.asyncio.Redis(**vars(Redis))
 
     async def create_queue(self, request: web.Request):
