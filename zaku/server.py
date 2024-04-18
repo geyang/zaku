@@ -1,7 +1,7 @@
 import msgpack
 import redis
 from aiohttp import web
-from params_proto import Proto, ParamsProto
+from params_proto import Proto, ParamsProto, Flag
 
 from zaku.base import Server
 from zaku.interfaces import Job
@@ -62,9 +62,12 @@ class TaskServer(ParamsProto, Server):
         --key               :str None the path to the SSL key
         --ca-cert           :str None the trusted root CA certificates
         --REQUEST-MAX-SIZE  :int 100000000 the maximum packet size
-        --free-port         :bool True
+        --free-port         :bool False
                               kill process squatting target port if True.
         --static-root       :str '.'
+        --verbose           :bool False
+                              show the list of configurations during launch if True.
+
     """
 
     prefix = "Zaku-task-queues"
@@ -74,27 +77,33 @@ class TaskServer(ParamsProto, Server):
 
     # Server Parameters
     host: str = Proto(
-        "localhost", help="set to 0.0.0.0 to enable remote (not localhost) connections."
+        "localhost",
+        help="set to 0.0.0.0 to enable remote (not localhost) connections.",
     )
-    port = 9000
-    cors = (
+    port: int = 9000
+    cors: str = (
         "https://vuer.ai,https://dash.ml,http://localhost:8000,http://127.0.0.1:8000,*"
     )
 
     # SSL Parameters
-    cert = Proto(None, dtype=str, help="the path to the SSL certificate")
-    key = Proto(None, dtype=str, help="the path to the SSL key")
-    ca_cert = Proto(None, dtype=str, help="the trusted root CA certificates")
+    cert: str = Proto(None, dtype=str, help="the path to the SSL certificate")
+    key: str = Proto(None, dtype=str, help="the path to the SSL key")
+    ca_cert: str = Proto(None, dtype=str, help="the trusted root CA certificates")
 
-    REQUEST_MAX_SIZE = Proto(
+    REQUEST_MAX_SIZE: int = Proto(
         100_000_000, env="WEBSOCKET_MAX_SIZE", help="the maximum packet size"
     )
 
-    free_port = Proto(True, help="kill process squatting target port if True.")
-    static_root = "."
+    free_port: bool = Flag("kill process squatting target port if True.")
+    static_root: str = "."
+    verbose = Flag("show the list of configurations during launch if True.")
 
     def __post_init__(self):
         Server.__post_init__(self)
+
+        if self.verbose:
+            for k, v in vars(self).items():
+                print(f"{k}: {v},")
 
         self.redis = redis.asyncio.Redis(**vars(Redis))
 
