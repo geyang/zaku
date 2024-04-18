@@ -6,8 +6,6 @@ from params_proto import Proto, ParamsProto
 from zaku.base import Server
 from zaku.interfaces import Job
 
-DEFAULT_PORT = 9000
-
 
 class Redis(ParamsProto, prefix="redis", cli_parse=False):
     """Redis Configuration for the TaskServer class.
@@ -53,17 +51,20 @@ class TaskServer(ParamsProto, Server):
 
         python -m zaku.server --help
 
-        -h, --help          show this help message and exit
-        --prefix          :str 'Zaku-task-queues'
-        --queue-len       :int 100
-        --port            :int 9000
-        --free-port       :bool True
-        --static-root     :str '.'
-        --cors            :str 'https://vuer.ai,https://dash.ml,http://lo...
-        --cert            :str None the path to the SSL certificate
-        --key             :str None the path to the SSL key
-        --ca-cert         :str None the trusted root CA certificates
+        -h, --help            show this help message and exit
+        --prefix            :str 'Zaku-task-queues'
+        --queue-len         :int 100
+        --host              :str 'localhost'
+                              set to 0.0.0.0 to enable remote (not localhost) connections.
+        --port              :int 9000
+        --cors              :str 'https://vuer.ai,https://dash.ml,http://lo...
+        --cert              :str None the path to the SSL certificate
+        --key               :str None the path to the SSL key
+        --ca-cert           :str None the trusted root CA certificates
         --REQUEST-MAX-SIZE  :int 100000000 the maximum packet size
+        --free-port         :bool True
+                              kill process squatting target port if True.
+        --static-root       :str '.'
     """
 
     prefix = "Zaku-task-queues"
@@ -72,9 +73,10 @@ class TaskServer(ParamsProto, Server):
     queue_len = 100  # use a max length to avoid the memory from blowing up.
 
     # Server Parameters
-    port = DEFAULT_PORT
-    free_port = True
-    static_root = "."
+    host: str = Proto(
+        "localhost", help="set to 0.0.0.0 to enable remote (not localhost) connections."
+    )
+    port = 9000
     cors = (
         "https://vuer.ai,https://dash.ml,http://localhost:8000,http://127.0.0.1:8000,*"
     )
@@ -84,7 +86,12 @@ class TaskServer(ParamsProto, Server):
     key = Proto(None, dtype=str, help="the path to the SSL key")
     ca_cert = Proto(None, dtype=str, help="the trusted root CA certificates")
 
-    REQUEST_MAX_SIZE = Proto(100_000_000, env="WEBSOCKET_MAX_SIZE", help="the maximum packet size")
+    REQUEST_MAX_SIZE = Proto(
+        100_000_000, env="WEBSOCKET_MAX_SIZE", help="the maximum packet size"
+    )
+
+    free_port = Proto(True, help="kill process squatting target port if True.")
+    static_root = "."
 
     def __post_init__(self):
         Server.__post_init__(self)
