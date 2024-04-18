@@ -27,25 +27,28 @@ all = [
     "aiohttp",
     "aiohttp-cors",
     "killport",
+    "redis",
 ]
 example = [
     "aiohttp",
     "aiohttp-cors",
-    "killport",
-    "open3d>=0.15.0,<0.16.0",
-    "trimesh",
     "cmx",
     "functional_notations",
+    "killport",
     "ml_logger",
-    "opencv-python"
+    "opencv-python",
+    "open3d>=0.15.0,<0.16.0",
+    "redis",
+    "trimesh",
 ]
 dev = [
     "restructuredtext-lint",
     "twine",
     "aiohttp",
     "aiohttp-cors",
-    "killport",
     "black==22.3.0",
+    "killport",
+    "redis",
     "pylint==2.13.4",
     "pytest==7.1.2",
     "sphinx==7.1.2",
