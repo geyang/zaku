@@ -102,8 +102,10 @@ class TaskServer(ParamsProto, Server):
         Server.__post_init__(self)
 
         if self.verbose:
+            print("========= Arguments =========")
             for k, v in vars(self).items():
-                print(f"{k}: {v},")
+                print(f" {k} = {v},")
+            print("-----------------------------")
 
         self.redis = redis.asyncio.Redis(**vars(Redis))
 
