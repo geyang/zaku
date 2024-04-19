@@ -238,7 +238,7 @@ class Job(SimpleNamespace):
         return job_id, payload
 
     @staticmethod
-    async def remove(r: "redis.asyncio.Redis", job_id, queue, *, prefix) -> Coroutine:
+    async def remove(r: "redis.asyncio.Redis", job_id, queue, *, prefix):
         entry_name = f"{prefix}:{queue}:{job_id}"
 
         p = r.pipeline()
@@ -248,12 +248,11 @@ class Job(SimpleNamespace):
             async for key in r.scan_iter(entry_name):
                 p = p.delete(key)
                 count += 1
-
             await p.execute()
             return count
 
-        response = await p.json().delete(entry_name).delete(entry_name + ".payload").execute()
-        return response
+        response = p.json().delete(entry_name).delete(entry_name + ".payload").execute()
+        return await response
 
     @staticmethod
     def reset(r: "redis.asyncio.Redis", job_id, queue, *, prefix):
