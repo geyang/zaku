@@ -239,7 +239,6 @@ class Job(SimpleNamespace):
 
     @staticmethod
     async def remove(r: "redis.asyncio.Redis", job_id, queue, *, prefix) -> Coroutine:
-        print("deleting!!!!!!!!!!!!!!!!")
         entry_name = f"{prefix}:{queue}:{job_id}"
 
         p = r.pipeline()
