@@ -9,8 +9,8 @@ task_queue = TaskQ(name="jq-debug", uri="http://localhost:9000")
 task_queue.init_queue()
 
 
-@pytest.mark.dependency(name="clear_queue")
-def test_clear_queue():
+@pytest.mark.dependency(name="empty_queue")
+def test_empty_queue():
     """Test adding and retrieving multiple tasks"""
     while True:
         with task_queue.pop() as task:
@@ -19,15 +19,15 @@ def test_clear_queue():
     print("cleared out the queue")
 
 
-@pytest.mark.dependency(name="add_5_tasks", depends=["clear_queue"])
+@pytest.mark.dependency(name="add_5_tasks", depends=["empty_queue"])
 def test_add_5_tasks():
     """adding"""
     for i in trange(5, file=sys.stdout):
         task_queue.add({"step": i, "param_2": f"key-{i}"})
 
 
-@pytest.mark.dependency(depends=["add_5_tasks", "clear_queue"])
-def test_main():
+@pytest.mark.dependency(name="take", depends=["add_5_tasks", "empty_queue"])
+def test_take():
     """Test adding and retrieving multiple tasks"""
     for i in range(10):
         with task_queue.pop() as task:
@@ -37,7 +37,24 @@ def test_main():
     assert i == 5, "should retrieve five task objects"
 
 
-@pytest.mark.dependency(depends=["clear_queue"])
+@pytest.mark.dependency(depends=["empty_queue"])
+def test_clear_queue():
+    """Test adding and retrieving multiple tasks"""
+
+    for i in trange(5, file=sys.stdout):
+        task_queue.add({"step": i, "param_2": f"key-{i}"})
+
+    task_queue.clear_queue()
+
+    for i in range(10):
+        with task_queue.pop() as task:
+            if task is None:
+                break
+
+    assert i == 0, "should retrieve zero task objects after clearance"
+
+
+@pytest.mark.dependency(depends=["empty_queue"])
 def test_numpy_tensor():
     """Test the ability to send and retrieve numpy arrays"""
     import numpy as np
@@ -50,7 +67,7 @@ def test_numpy_tensor():
         ), "numpy arrays mismatch."
 
 
-@pytest.mark.dependency(depends=["clear_queue"])
+@pytest.mark.dependency(depends=["empty_queue"])
 def test_torch_tensor():
     """Test the ability to send and retrieve pytorch tensors"""
     import torch
@@ -64,7 +81,7 @@ def test_torch_tensor():
         ), "torch tensor mismatch."
 
 
-@pytest.mark.dependency(depends=["clear_queue"])
+@pytest.mark.dependency(depends=["empty_queue"])
 def test_images():
     """Test the ability to send and retrieve pytorch tensors"""
     from pathlib import Path

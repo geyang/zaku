@@ -1,7 +1,7 @@
 from io import BytesIO
 from time import time
 from types import SimpleNamespace
-from typing import Literal, Any, Tuple, Coroutine, Dict, Union, TYPE_CHECKING
+from typing import Literal, Any, Coroutine, Dict, Union, TYPE_CHECKING, Tuple
 
 import msgpack
 import numpy as np
@@ -210,7 +210,7 @@ class Job(SimpleNamespace):
         return p.execute()
 
     @staticmethod
-    async def take(r: "redis.asyncio.Redis", queue, *, prefix) -> Tuple[str, Any]:
+    async def take(r: "redis.asyncio.Redis", queue, *, prefix) -> Tuple[Any, Any]:
         from redis.commands.search.query import Query
         from redis.commands.search.result import Result
 
@@ -238,11 +238,22 @@ class Job(SimpleNamespace):
         return job_id, payload
 
     @staticmethod
-    def remove(r: "redis.asyncio.Redis", job_id, queue, *, prefix) -> Coroutine:
+    async def remove(r: "redis.asyncio.Redis", job_id, queue, *, prefix) -> Coroutine:
+        print("deleting!!!!!!!!!!!!!!!!")
         entry_name = f"{prefix}:{queue}:{job_id}"
 
         p = r.pipeline()
-        response = p.json().delete(entry_name).delete(entry_name + ".payload").execute()
+
+        if job_id == "*":
+            count = 0
+            async for key in r.scan_iter(entry_name):
+                p = p.delete(key)
+                count += 1
+
+            await p.execute()
+            return count
+
+        response = await p.json().delete(entry_name).delete(entry_name + ".payload").execute()
         return response
 
     @staticmethod

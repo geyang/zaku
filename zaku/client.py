@@ -1,10 +1,10 @@
 from contextlib import contextmanager
+from typing import Dict
 from uuid import uuid4
 
 import msgpack
 import requests
 from params_proto import PrefixProto, Proto, Flag
-from typing import Dict
 
 from zaku.interfaces import Payload
 
@@ -179,3 +179,13 @@ class TaskQ(PrefixProto, cli=False):
             raise e
 
         self.mark_done(job_id)
+
+    def clear_queue(self):
+        """Remove all jobs in a queue. Useful when stale jobs degrades performance."""
+        res = requests.delete(
+            self.uri + "/tasks",
+            json={"queue": self.name, "job_id": "*"},
+        )
+        if res.status_code == 200:
+            return True
+        raise Exception(f"Failed to reset job on {self.uri}.", res.content)
