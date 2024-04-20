@@ -24,6 +24,7 @@ dependencies = [
 [project.optional-dependencies]
 # add the cors package, not needed in pyScript
 all = [
+    "asyncio",
     "aiohttp",
     "aiohttp-cors",
     "killport",

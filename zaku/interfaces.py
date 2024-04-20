@@ -211,6 +211,8 @@ class Job(SimpleNamespace):
 
     @staticmethod
     async def take(r: "redis.asyncio.Redis", queue, *, prefix) -> Tuple[Any, Any]:
+        # from ml_logger import logger
+
         from redis.commands.search.query import Query
         from redis.commands.search.result import Result
 
@@ -219,12 +221,15 @@ class Job(SimpleNamespace):
         # note: search ranks results via FTIDF. Use aggregation to sort by created_ts
         q = Query("@status: { created }").paging(0, 1)
         result: Result = await r.ft(index_name).search(q)
+        # with logger.time("finding first document"):
+        #     result: Result = await r.ft(index_name).search(q)
 
         if not result.total:
             return None, None
 
         job = result.docs[0]
         p = r.pipeline()
+        # with logger.time("setting the status"):
         payload, *_ = (
             await p.get(job.id + ".payload")
             .json()

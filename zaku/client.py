@@ -1,4 +1,4 @@
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from typing import Dict
 from uuid import uuid4
 
@@ -101,9 +101,15 @@ class TaskQ(PrefixProto, cli=False):
         if name:
             self.name = name
 
-        print("creating queue:", self.name)
-        res = requests.put(self.uri + "/queues", json={"name": self.name})
-        return res.status_code == 200
+        print("creating queue:", self.name, end="")
+
+        # Establish clean error traces for better debugging.
+        with suppress(requests.exceptions.ConnectionError):
+            res = requests.put(self.uri + "/queues", json={"name": self.name})
+            return res.status_code == 200, "failed"
+        raise ConnectionError(
+            "Queue creation failed, check connection."
+        ).with_traceback(None)
 
     def add(self, value: Dict, *, key=None):
         """Append a job to the queue."""
