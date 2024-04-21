@@ -43,13 +43,25 @@ class TaskQ(PrefixProto, cli=False):
             "ttl": 5.0
         }
 
-    .. automethod::init_queue
-    .. automethod::add
-    .. automethod::take
-    .. automethod::mark_done
-    .. automethod::mark_reset
-    .. automethod::pop
-    .. automethod::clear_queue
+    Task Queue Configurations
+    +++++++++++++++++++++++++
+
+    .. autoattribute:: uri
+    .. autoattribute:: name
+    .. autoattribute:: ttl
+    .. autoattribute:: no_init
+
+    Task Life-cycle Methods
+    +++++++++++++++++++++++
+
+    .. automethod:: init_queue
+    .. automethod:: add
+    .. automethod:: take
+    .. automethod:: mark_done
+    .. automethod:: mark_reset
+    .. automethod:: pop
+    .. automethod:: clear_queue
+
     """
 
     uri: str = Proto(
