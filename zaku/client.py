@@ -101,6 +101,11 @@ class TaskQ(PrefixProto, cli=False):
     no_init: bool = Flag("Flag for skipping the queue creation.")
     """Flag for skipping the queue creation."""
 
+    verbose: bool = Flag("Flag printing the state of the queue")
+
+    ZAKU_USER = Proto(env="ZAKU_USER", help="The user name for the queue.")
+    ZAKU_KEY = Proto(env="ZAKU_KEY", help="The user name for the queue.")
+
     def __post_init__(self):
         if not self.no_init:
             self.init_queue()
@@ -113,7 +118,13 @@ class TaskQ(PrefixProto, cli=False):
         if name:
             self.name = name
 
-        print("creating queue:", self.name, end="")
+        print("creating queue...", self.name)
+
+        if self.verbose:
+            print("=============================")
+            for k, v in vars(self).items():
+                print(f" {k} = {v}")
+            print("=============================")
 
         # Establish clean error traces for better debugging.
         with suppress(requests.exceptions.ConnectionError):
