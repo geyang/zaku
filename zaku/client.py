@@ -203,6 +203,9 @@ class TaskQ(PrefixProto, cli=False):
         job_id, job = job_tuple
         try:
             yield job
+        except SystemExit as e:
+            self.mark_done(job_id)
+            raise e
         except Exception as e:
             self.mark_reset(job_id)
             raise e
