@@ -81,7 +81,7 @@ the [API documentation on Components | zaku](https://docs.zaku.ai/en/latest/api/
    
    Simple Example <examples/01_simple_queue.md>
    PubSub <examples/02_pubsub.md>
-   RPC <examples/03_remote_procedural_call.md>
+   Remote Procedural Calls <examples/03_remote_procedural_call.md>
    
 .. toctree::
    :maxdepth: 3

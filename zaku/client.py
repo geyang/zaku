@@ -62,6 +62,15 @@ class TaskQ(PrefixProto, cli=False):
     .. automethod:: pop
     .. automethod:: clear_queue
 
+    PubSub and RPC Methods
+    +++++++++++++++++++++++
+
+    .. automethod:: publish
+    .. automethod:: subscribe_one
+    .. automethod:: subscribe_stream
+    .. automethod:: rpc
+    .. automethod:: rpc_stream
+
     """
 
     uri: str = Proto(
