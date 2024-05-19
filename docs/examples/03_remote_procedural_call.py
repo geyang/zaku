@@ -78,7 +78,9 @@ with doc, doc.skip if MAKE_DOCS else nullcontext():
     queue_name = "ZAKU_TEST:debug-rpc-queue"
     rpc_queue = TaskQ(name=queue_name, uri="http://localhost:9000")
 
+    # remember to run the worker process after calling this.
     stream = rpc_queue.rpc_stream(start=5, end=10, _timeout=5)
+
     for i, result in enumerate(stream):
         print(">>>", result)
         assert result["value"] == i + 5, "the value should be correct"
