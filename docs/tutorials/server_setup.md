@@ -40,3 +40,44 @@ opposed to erroring out.
   <img src="../_static/redis-server-screenshot.png" width="600">
 </p>
 
+
+## Running the Zaku Task Queue Server
+
+Now, you can run the `zaku` task queue server. 
+
+```shell
+pip install 'zaku[all]=={VERSION}'
+zaku --port 9000 --verbose
+```
+
+### Running for Production
+
+```{admonition} Under Constrution 🚧
+The way that the vuer and zaku servers are setup is not adapted
+to be ran via `guicorn` or `uvicorn`. This is because the `zaku` server
+does not expose the `aiohttp` app. 
+
+We are working on fixing this. If you need this urgently, please feel 
+free to add a github issue.
+```
+
+You can run the `zaku` task queue server in the background using `screen`. 
+
+```shell
+screen -S zaku -dm zaku --host 0.0.0.0 --port 8100 --verbose --free-port
+```
+
+**Coming soon...**
+
+```shell
+pip install gunicorn aiohttp 'gunicorn[asyncio]' uvloop
+```
+
+This is not yet supported.
+
+```shell
+gunicorn zaku.server:get_app --worker-class aiohttp.GunicornWebWorker --bind 0.0.0.0:8080
+```
+
+
+
