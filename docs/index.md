@@ -72,7 +72,7 @@ the [API documentation on Components | zaku](https://docs.zaku.ai/en/latest/api/
    :caption: Tutorials
    :hidden:
    
-   tutorials/setting_up_server.md
+   tutorials/server_setup.md
    
 .. toctree::
    :maxdepth: 3

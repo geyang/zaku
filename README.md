@@ -112,5 +112,5 @@ pytest
 
 In pycharm, you should see the following:
 <p align="center">
-<img src="figure_spec.png" width="600">
+<img src="docs/_static/figure_spec.png" width="600">
 </p>
