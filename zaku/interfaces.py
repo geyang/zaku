@@ -347,7 +347,7 @@ class Job(SimpleNamespace):
 
         p = r.pipeline()
         p = p.json().set(entry_name, "$.status", "created")
-        p = p.json().set(entry_name, "$.grab_ts")
+        p = p.json().set(entry_name, "$.grab_ts", None)
 
         return p.execute()
 

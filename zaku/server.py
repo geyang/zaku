@@ -157,7 +157,7 @@ class TaskServer(ParamsProto, Server):
     async def unstale_handler(self, request: web.Request):
         data = await request.json()
         # print("take ==> data", data)
-        print('hey', data)
+        print("hey", data)
         await Job.unstale_tasks(self.redis, **data, prefix=self.prefix)
 
         return web.Response(text="OK", status=200)
@@ -196,15 +196,8 @@ class TaskServer(ParamsProto, Server):
         response = await stream_response(response)
         return response
 
-    def run(self, kill=None, *args, **kwargs):
+    def setup_server(self):
         import os
-
-        if kill or self.free_port:
-            import time
-            from killport import kill_ports
-
-            kill_ports(ports=[self.port])
-            time.sleep(0.01)
 
         # use the same endpoint for websocket and file serving.
         self._route("/queues", self.create_queue, method="PUT")
@@ -222,6 +215,18 @@ class TaskServer(ParamsProto, Server):
         self._static("/static", self.static_root)
         print("Serving file://" + os.path.abspath(self.static_root), "at", "/static")
 
+        return self.app
+
+    def run(self, kill=None, *args, **kwargs):
+        if kill or self.free_port:
+            import time
+            from killport import kill_ports
+
+            kill_ports(ports=[self.port])
+            time.sleep(0.01)
+
+        self.setup_server()
+
         print("redis server is now connected")
         print(f"serving at http://localhost:{self.port}")
         super().run()
@@ -229,6 +234,11 @@ class TaskServer(ParamsProto, Server):
 
 def entry_point():
     TaskServer().run()
+
+
+async def get_app():
+    """This is sued by gunicorn to run the server in worker mode."""
+    return TaskServer().setup_server()
 
 
 if __name__ == "__main__":

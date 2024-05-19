@@ -37,6 +37,12 @@ def test_unstale():
     """Test adding and retrieving multiple tasks"""
     import time
 
+    task_queue.clear_queue()
+
+    for i in trange(2, file=sys.stdout):
+
+        task_queue.add({"step": i, "param_2": f"key-{i}"})
+
     for i in range(2):
         job_container = task_queue.take()
         print(job_container)

@@ -108,6 +108,15 @@ class Server:
         self._route(f"{path}", _fn, method="GET")
 
     def run(self):
+        """Simple Runner
+
+        When using gunicorn, this gets replace by the gunicorn runner. gunicorn
+        is responsible for handling the ssl certification, and the port binding.
+
+        ```shell
+        $ gunicorn --certfile=server.crt --keyfile=server.key --bind 0.0.0.0:443 test:app
+        ```
+        """
         async def init_server():
             runner = web.AppRunner(self.app)
             await runner.setup()

@@ -51,3 +51,6 @@ test:
 	pwd && \
 	python -m pytest specs --capture=no
 
+prod:
+	conda activate torch && uvicorn zaku.server:get_app
+

@@ -52,32 +52,23 @@ zaku --port 9000 --verbose
 
 ### Running for Production
 
-```{admonition} Under Constrution 🚧
-The way that the vuer and zaku servers are setup is not adapted
-to be ran via `guicorn` or `uvicorn`. This is because the `zaku` server
-does not expose the `aiohttp` app. 
-
-We are working on fixing this. If you need this urgently, please feel 
-free to add a github issue.
-```
-
 You can run the `zaku` task queue server in the background using `screen`. 
 
 ```shell
 screen -S zaku -dm zaku --host 0.0.0.0 --port 8100 --verbose --free-port
 ```
 
-**Coming soon...**
-
 ```shell
-pip install gunicorn aiohttp 'gunicorn[asyncio]' uvloop
+pip install 'gunicorn[asyncio]'
 ```
 
-This is not yet supported.
-
 ```shell
-gunicorn zaku.server:get_app --worker-class aiohttp.GunicornWebWorker --bind 0.0.0.0:8080
+gunicorn zaku.server:get_app --bind 0.0.0.0:9000 --worker-class aiohttp.GunicornWebWorker
 ```
+
+This should improve the throughput of the zaku server quite a lot since
+by default the simple running only runs a single thread.
+
 
 
 
