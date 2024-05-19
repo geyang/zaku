@@ -98,12 +98,15 @@ class TaskServer(ParamsProto, Server):
     static_root: str = "."
     verbose = Flag("show the list of configurations during launch if True.")
 
+    def print_info(self):
+        print("========= Arguments =========")
+        for k, v in vars(self).items():
+            print(f" {k} = {v},")
+        print("-----------------------------")
+
     def __post_init__(self):
         if self.verbose:
-            print("========= Arguments =========")
-            for k, v in vars(self).items():
-                print(f" {k} = {v},")
-            print("-----------------------------")
+            self.print_info()
 
         Server.__post_init__(self)
         self.redis = redis.asyncio.Redis(**vars(Redis))
@@ -124,6 +127,14 @@ class TaskServer(ParamsProto, Server):
         # print("==>", data)
         await Job.add(self.redis, prefix=self.prefix, **data)
         return web.Response(text="OK")
+
+    async def publish_job(self, request: web.Request):
+        msg = await request.read()
+        data = msgpack.unpackb(msg)
+        # print("==>", data)
+        num_subscribers = await Job.publish(self.redis, prefix=self.prefix, **data)
+        # todo: return the number of subscribers.
+        return web.Response(text=str(num_subscribers), status=200)
 
     async def reset_handler(self, request: web.Request):
         data = await request.json()
@@ -146,8 +157,44 @@ class TaskServer(ParamsProto, Server):
                 {"job_id": job_id, "payload": payload}, use_bin_type=True
             )
             return web.Response(body=msg, status=200)
-        else:
-            return web.Response(text="EMPTY", status=200)
+
+        return web.Response(status=200)
+
+    async def subscribe_one_handler(self, request):
+        data = await request.json()
+
+        payload = await Job.subscribe(self.redis, **data, prefix=self.prefix)
+
+        if payload:
+            return web.Response(body=payload, status=200)
+
+        return web.Response(status=200)
+
+    async def subscribe_streaming_handler(self, request) -> web.StreamResponse:
+        data = await request.json()
+
+        async def stream_response(response):
+            try:
+                async for payload in Job.subscribe_stream(
+                    self.redis, **data, prefix=self.prefix
+                ):
+                    # use msgpack.Unpacker to determin the end of message.
+                    await response.write(payload)
+
+                await response.write_eof()
+
+            except ConnectionResetError:
+                print("client disconnected.")
+                return
+
+        response = web.StreamResponse(
+            status=200,
+            reason="OK",
+            headers={"Content-Type": "text/plain"},
+        )
+        await response.prepare(request)
+        response = await stream_response(response)
+        return response
 
     def run(self, kill=None, *args, **kwargs):
         import os
@@ -165,6 +212,12 @@ class TaskServer(ParamsProto, Server):
         self._route("/tasks", self.take_handler, method="POST")
         self._route("/tasks/reset", self.reset_handler, method="POST")
         self._route("/tasks", self.remove_handle, method="DELETE")
+
+        self._route("/publish", self.publish_job, method="PUT")
+        self._route("/subscribe_one", self.subscribe_one_handler, method="POST")
+        self._route(
+            "/subscribe_stream", self.subscribe_streaming_handler, method="POST"
+        )
 
         # serve local files via /static endpoint
         self._static("/static", self.static_root)

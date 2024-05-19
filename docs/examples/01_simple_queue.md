@@ -10,7 +10,7 @@ from zaku import TaskQ
 queue = TaskQ()
 ```
 ```
-{'host': 'http://localhost:9000', 'name': 'jq-121c8aad-7d85-4cfd-9116-7452744a0257', 'ttl': 5, 'no_init': None}
+{'uri': 'http://localhost:9000', 'name': 'jq-49ae02fe-005f-482b-bac0-7bdac694566a', 'ttl': 5.0, 'no_init': None, 'verbose': None, 'ZAKU_USER': None, 'ZAKU_KEY': None}
 ```
 
 
@@ -30,7 +30,7 @@ queue.add({"seed": 200, "data": [1, 2, 3]}, key=count)
 job_id, job_config = queue.take()
 ```
 ```
-a859a910-9bcb-4670-afd7-9d9896ae022f {'seed': 100, 'data': [1, 2, 3]}
+69f40427-fcdd-4bfa-af2b-c2cb232dc333 {'seed': 100, 'data': [1, 2, 3]}
 ```
 
 

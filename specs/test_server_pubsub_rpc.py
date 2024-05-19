@@ -1,48 +1,145 @@
+import sys
+
 import pytest
 
 from zaku import TaskQ
 
-task_queue = TaskQ(name="jq-debug", uri="http://localhost:9000")
+task_queue = TaskQ(name="ZAKU_TEST:debug-queue", uri="http://localhost:9000")
 task_queue.init_queue()
 
 
-@pytest.mark.dependency(name="empty_queue")
-def test_empty_queue():
-    """Test adding and retrieving multiple tasks"""
-    while True:
-        with task_queue.pop() as task:
-            if task is None:
-                break
-    print("cleared out the queue")
+def publish(topic_id):
+    """A publisher function. We run this in a separate process to publish
+    messages to the channel."""
+    from time import sleep
+
+    sleep(0.1)
+
+    for i in range(5):
+        n = task_queue.publish({"step": i, "param_2": f"key-{i}"}, topic=topic_id)
+        sleep(0.1)
+        print("published", n)
+        sys.stdout.flush()
 
 
-@pytest.mark.dependency(name="add_5_tasks", depends=["empty_queue"])
+@pytest.mark.dependency(name="pubsub")
 def test_pubsub():
+    """Test the pubsub api."""
+
+    from multiprocessing import Process
+
+    topic_id = "ZAKU-TEST:test_pubsub-topic"
+
+    p = Process(target=publish, args=(topic_id,))
+    p.start()
+
+    result = task_queue.subscribe_one(topic_id, timeout=5)
+    print(">>>", result)
+    assert result["step"] == 0, "the step should be correct"
+
+    p.join()
+
+
+@pytest.mark.dependency(name="pubsub_streaming")
+def test_pubsub_streaming():
     """adding"""
 
-    i = 0
-    result = task_queue.publish({"step": i, "param_2": f"key-{i}"}, topic="jq-debug")
-    print("publication results in", result)
+    from multiprocessing import Process
+
+    topic_id = "ZAKU-TEST:test_pubsub_streaming-topic"
+
+    p = Process(target=publish, args=(topic_id,))
+    p.start()
+
+    stream = task_queue.subscribe_stream(topic_id, timeout=5)
+
+    for i, result in enumerate(stream):
+        print(">>>", result)
+        assert result["step"] == i, "the step should be correct"
+
+    assert i == 4, "there are 5 in total."
+
+    p.join()
 
 
-# @pytest.mark.dependency(name="add_5_tasks", depends=["empty_queue"])
-# def test_rpc_long_polling():
-#     """adding"""
-#     import asyncio
-#
-#     def slow_task_handler():
-#
-#         while True:
-#             with task_queue.pop() as task:
-#                 if task is None:
-#                     break
-#
-#                 print("task received", task)
-#                 asyncio.sleep(1.0)
-#                 task_queue.send("response-uuid", {"response": "success", "task": task})
-#
-#     def rpc_call_example():
-#
-#         i = 0
-#         result = task_queue.rpc({"step": i, "param_2": f"key-{i}"})
-#         print("we get results", result)
+def worker_process(queue_name):
+    from time import sleep
+
+    queue = TaskQ(name=queue_name, uri="http://localhost:9000")
+
+    job = None
+    while not job:
+        with queue.pop() as job:
+            if job is None:
+                pass
+
+            topic = job.pop("_request_id")
+
+            # we simulate a long-running job.
+            sleep(1.0)
+            # we return the result to the response topic.
+            queue.publish(
+                {"result": "good", **job},
+                topic=topic,
+            )
+
+
+@pytest.mark.dependency(name="pubsub_streaming")
+def test_rpc():
+    """adding"""
+
+    from multiprocessing import Process
+
+    queue_name = "ZAKU_TEST:debug-rpc-queue"
+    rpc_queue = TaskQ(name=queue_name, uri="http://localhost:9000")
+
+    p = Process(target=worker_process, args=(queue_name,))
+    p.start()
+
+    result = rpc_queue.rpc(seed=100, _timeout=5)
+    assert result["seed"] == 100, "the seed should be correct"
+
+    p.join()
+
+
+def streamer_process(queue_name):
+    from time import sleep
+
+    queue = TaskQ(name=queue_name, uri="http://localhost:9000")
+
+    job = None
+    while not job:
+        with queue.pop() as job:
+            if job is None:
+                pass
+
+            topic = job.pop("_request_id")
+            args = job.pop("_args")
+
+            # we simulate a long-running job.
+            sleep(1.0)
+
+            # we return a sequence of results
+            for i in range(job["start"], job["end"]):
+                sleep(0.1)
+                queue.publish({"value": i}, topic=topic)
+
+
+@pytest.mark.dependency(name="pubsub_streaming")
+def test_rpc_streaming():
+    """adding"""
+
+    from multiprocessing import Process
+
+    queue_name = "ZAKU_TEST:debug-rpc-queue"
+    rpc_queue = TaskQ(name=queue_name, uri="http://localhost:9000")
+
+    p = Process(target=streamer_process, args=(queue_name,))
+    p.start()
+
+    stream = rpc_queue.rpc_stream(start=5, end=10, _timeout=5)
+    for i, result in enumerate(stream):
+        print(">>>", result)
+        assert result["value"] == i + 5, "the value should be correct"
+
+    p.join()

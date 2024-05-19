@@ -12,7 +12,7 @@ This example shows you how upload and download data
 
 """
 # Need to use this hack to make the code works for python < 3.9
-with doc, doc.skip if MAKE_DOCS else nullcontext():
+with doc:
     from zaku import TaskQ
 
     queue = TaskQ()

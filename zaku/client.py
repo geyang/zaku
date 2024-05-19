@@ -27,7 +27,7 @@ class TaskQ(PrefixProto, cli=False):
 
         # Put this into an .env file (without the exports)
         export ZAKU_URI=http://localhost:9000
-        export ZAKU_QUEUE_NAME=jq-debug-1
+        export ZAKU_QUEUE_NAME=ZAKU_TEST:debug-queue-1
 
     Now you can create a queue like this:
 
@@ -39,7 +39,7 @@ class TaskQ(PrefixProto, cli=False):
 
         Out[2]: {
             "uri": "http://localhost:9000",
-            "name": "jq-debug-1",
+            "name": "ZAKU_TEST:debug-queue-1",
             "ttl": 5.0
         }
 
@@ -110,6 +110,12 @@ class TaskQ(PrefixProto, cli=False):
         if not self.no_init:
             self.init_queue()
 
+    def print_info(self):
+        print("=============================")
+        for k, v in vars(self).items():
+            print(f" {k} = {v}")
+        print("=============================")
+
     def init_queue(self, name=None):
         """Create a new collection.
 
@@ -121,18 +127,73 @@ class TaskQ(PrefixProto, cli=False):
         print("creating queue...", self.name)
 
         if self.verbose:
-            print("=============================")
-            for k, v in vars(self).items():
-                print(f" {k} = {v}")
-            print("=============================")
+            self.print_info()
 
         # Establish clean error traces for better debugging.
         with suppress(requests.exceptions.ConnectionError):
             res = requests.put(self.uri + "/queues", json={"name": self.name})
             return res.status_code == 200, "failed"
+
+        self.print_info()
         raise ConnectionError(
             "Queue creation failed, check connection."
         ).with_traceback(None)
+
+    def publish(self, value: Dict, *, topic=None):
+        """Append a job to the queue."""
+        if topic is None:
+            topic = str(uuid4())
+
+        payload = Payload(**value)
+
+        json = {
+            "queue": self.name,
+            "topic_id": topic,
+            "payload": payload.serialize(),
+            # published messages are ephemeral.
+            # "ttl": self.ttl,
+        }
+        # ues msgpack to serialize the data. Bytes are the most efficient.
+        res = requests.put(
+            self.uri + "/publish",
+            msgpack.packb(json, use_bin_type=True),
+        )
+        if res.status_code == 200:
+            return res.json()
+        raise Exception(f"Failed to add job to {self.uri}.", res.content)
+
+    def subscribe_one(self, topic: str, timeout=0.1):
+        """subscribe to wait for one publishing event"""
+        response = requests.post(
+            self.uri + "/subscribe_one",
+            json={"queue": self.name, "topic_id": topic, "timeout": timeout},
+        )
+
+        # todo: add timeout handling
+        if response.status_code != 200:
+            raise Exception(f"Failed to grab job from {self.uri}.", response.content)
+
+        if not response.content:
+            return
+
+        # subscription does not have a job container.
+        return Payload.deserialize(response.content)
+
+    def subscribe_stream(self, topic: str, timeout=0.1):
+        """subscribe to collect all publishing events"""
+        delimiter = b"\n"
+        response = requests.post(
+            self.uri + "/subscribe_stream",
+            json={"queue": self.name, "topic_id": topic, "timeout": timeout},
+            stream=True,
+        )
+        response.raise_for_status()  # Raise an exception for HTTP errors
+        unpacker = msgpack.Unpacker()
+
+        for chunk in response.iter_content(chunk_size=8192):
+            unpacker.feed(chunk)
+            for unpacked in unpacker:
+                yield Payload.deserialize_unpacked(unpacked)
 
     def add(self, value: Dict, *, key=None):
         """Append a job to the queue."""
@@ -166,7 +227,7 @@ class TaskQ(PrefixProto, cli=False):
         if response.status_code != 200:
             raise Exception(f"Failed to grab job from {self.uri}.", response.content)
 
-        elif response.text == "EMPTY":
+        elif not response.content:
             return
 
         data = msgpack.loads(response.content)
@@ -221,3 +282,72 @@ class TaskQ(PrefixProto, cli=False):
         if res.status_code == 200:
             return True
         raise Exception(f"Failed to reset job on {self.uri}.", res.content)
+
+    def rpc(self, *args, _timeout=1.0, **kwargs):
+        """
+        This function is a synchronous RPC function that is used to
+        send rendering requests to the rendering server and collect
+        the response. This is a blocking function that waits for the
+        response from the worker before returning.
+
+        Args:
+            response_topic: The pubsub topic to return the response to
+            args: The positional arguments
+            kwargs: The keyword arguments
+
+        :return:
+        """
+
+        from uuid import uuid4
+
+        request_id = uuid4()
+
+        topic_name = f"rpc-{request_id}"
+
+        # push the request to the queue
+        self.add(
+            {
+                "_request_id": topic_name,
+                "_args": args,
+                **kwargs,
+            }
+        )
+
+        return self.subscribe_one(topic_name, timeout=_timeout)
+
+    def rpc_stream(
+        self,
+        *args,
+        _timeout=1.0,
+        **kwargs,
+    ):
+        """
+        This function is a synchronous RPC function that is used to
+        send rendering requests to the rendering server and collect
+        the response. This is a blocking function that waits for the
+        response from the worker before returning.
+
+        Args:
+            response_topic: The pubsub topic to return the response to
+            args: The positional arguments
+            kwargs: The keyword arguments
+
+        :return:
+        """
+
+        from uuid import uuid4
+
+        request_id = uuid4()
+
+        topic_name = f"rpc-{request_id}"
+
+        # push the request to the queue
+        self.add(
+            {
+                "_request_id": topic_name,
+                "_args": args,
+                **kwargs,
+            }
+        )
+
+        return self.subscribe_stream(topic_name, timeout=_timeout)

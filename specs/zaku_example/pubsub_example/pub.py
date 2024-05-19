@@ -2,7 +2,7 @@ import sys
 
 from zaku import TaskQ
 
-task_queue = TaskQ(name="jq-debug", uri="http://localhost:9000")
+task_queue = TaskQ(name="ZAKU_TEST:debug-queue", uri="http://localhost:9000")
 
 import asyncio
 

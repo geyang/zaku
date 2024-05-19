@@ -1,5 +1,5 @@
 from io import BytesIO
-from time import time
+from time import time, perf_counter
 from types import SimpleNamespace
 from typing import Literal, Any, Coroutine, Dict, Union, TYPE_CHECKING, Tuple
 
@@ -125,6 +125,22 @@ class Payload(SimpleNamespace):
 
             return data
 
+    @staticmethod
+    def deserialize_unpacked(unpacked) -> Dict:
+        """used with msgpack.Unpacker in the streaming mode, to let the unpacker
+        handle the end of message. Handling it ourselves is messy.
+        """
+        is_greedy = unpacked.pop("_greedy", None)
+        if not is_greedy:
+            return unpacked
+        else:
+            data = {}
+
+            for k, v in unpacked.items():
+                data[k] = ZData.decode(v)
+
+            return data
+
 
 class Job(SimpleNamespace):
     created_ts: float
@@ -204,9 +220,9 @@ class Job(SimpleNamespace):
         entry_key = f"{prefix}:{queue}:{job_id}"
 
         p = r.pipeline()
-        p.json().set(entry_key, ".", vars(job))
         if payload:
             p.set(entry_key + ".payload", payload)
+        p.json().set(entry_key, ".", vars(job))
         return p.execute()
 
     @staticmethod
@@ -241,6 +257,77 @@ class Job(SimpleNamespace):
 
         job_id = job.id[len(index_name) + 1 :]
         return job_id, payload
+
+    @staticmethod
+    async def publish(
+        r: "redis.asyncio.Redis",
+        queue: str,
+        *,
+        payload: bytes,
+        topic_id: str,
+        prefix: str,
+    ) -> Coroutine:
+        """Publish a job to a key --- this is not saved in the queue and is ephemeral."""
+        # we don't use folders so that these do not get entangled with the job queue.
+        entry_key = f"{prefix}:{queue}.topics:{topic_id}"
+        subscribers = await r.publish(entry_key, payload)
+        return subscribers
+
+    # todo: implement streaming mode.
+    @staticmethod
+    async def subscribe(
+        r: "redis.asyncio.Redis",
+        queue: str,
+        *,
+        topic_id: str,
+        prefix: str,
+        timeout: float = 0.1,
+    ) -> str:
+        """Returns the first non-empty message."""
+        topic_name = f"{prefix}:{queue}.topics:{topic_id}"
+
+        end_time = perf_counter() + timeout
+
+        async with r.pubsub() as pb:
+            await pb.subscribe(topic_name)
+
+            while perf_counter() < end_time:
+                message = await pb.get_message(
+                    ignore_subscribe_messages=True,
+                    timeout=min(0.1, timeout),
+                )
+                if message is None:
+                    pass
+                elif message["type"] == "message":
+                    payload = message["data"]
+                    return payload
+
+    @staticmethod
+    async def subscribe_stream(
+        r: "redis.asyncio.Redis",
+        queue: str,
+        *,
+        topic_id: str,
+        prefix: str,
+        timeout: float = 0.1,
+    ):
+        topic_name = f"{prefix}:{queue}.topics:{topic_id}"
+
+        end_time = perf_counter() + timeout
+
+        async with r.pubsub() as pb:
+            await pb.subscribe(topic_name)
+
+            while perf_counter() < end_time:
+                message = await pb.get_message(
+                    ignore_subscribe_messages=True,
+                    timeout=min(0.1, timeout),
+                )
+                if message is None:
+                    pass
+                elif message["type"] == "message":
+                    payload = message["data"]
+                    yield payload
 
     @staticmethod
     async def remove(r: "redis.asyncio.Redis", job_id, queue, *, prefix):

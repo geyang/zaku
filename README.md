@@ -26,8 +26,6 @@ This should show you the documents on all of the arguments. Now, to setup a zaku
 zaku --host 0.0.0.0 --port 9000
 ````
 
-
-
 **Adding Jobs**:
 
 Supposed you have a TaskServer running at `localhost:9000`.
@@ -92,3 +90,27 @@ To build the documentations, run
 ```shell
 make docs
 ```
+
+### Running the tests (specs)
+
+To run the tests in the spec folder, first start a zaku task queue server at local port `9000`, with a redis-stack-server in the backing.
+
+1. run the `redis-stack-server`:
+    ```shell
+    redis-stack-server
+    ```
+2. run the zaku task queue at port `9000`:
+    ```shell
+    zaku --port 9000 --verbose
+    ```
+
+Now you can run the tests by running
+
+```shell
+pytest
+```
+
+In pycharm, you should see the following:
+<p align="center">
+<img src="figure_spec.png" width="600">
+</p>
