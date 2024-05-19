@@ -81,18 +81,14 @@ class TaskServer(ParamsProto, Server):
         help="set to 0.0.0.0 to enable remote (not localhost) connections.",
     )
     port: int = 9000
-    cors: str = (
-        "https://vuer.ai,https://dash.ml,http://localhost:8000,http://127.0.0.1:8000,*"
-    )
+    cors: str = "https://vuer.ai,https://dash.ml,http://localhost:8000,http://127.0.0.1:8000,*"
 
     # SSL Parameters
     cert: str = Proto(None, dtype=str, help="the path to the SSL certificate")
     key: str = Proto(None, dtype=str, help="the path to the SSL key")
     ca_cert: str = Proto(None, dtype=str, help="the trusted root CA certificates")
 
-    REQUEST_MAX_SIZE: int = Proto(
-        100_000_000, env="WEBSOCKET_MAX_SIZE", help="the maximum packet size"
-    )
+    REQUEST_MAX_SIZE: int = Proto(100_000_000, env="WEBSOCKET_MAX_SIZE", help="the maximum packet size")
 
     free_port: bool = Flag("kill process squatting target port if True.")
     static_root: str = "."
@@ -142,7 +138,7 @@ class TaskServer(ParamsProto, Server):
         await Job.reset(self.redis, **data, prefix=self.prefix)
         return web.Response(text="OK")
 
-    async def remove_handle(self, request: web.Request):
+    async def remove_handler(self, request: web.Request):
         data = await request.json()
         # print("remove ==>", data)
         await Job.remove(self.redis, **data, prefix=self.prefix)
@@ -153,12 +149,18 @@ class TaskServer(ParamsProto, Server):
         # print("take ==> data", data)
         job_id, payload = await Job.take(self.redis, **data, prefix=self.prefix)
         if payload:
-            msg = msgpack.packb(
-                {"job_id": job_id, "payload": payload}, use_bin_type=True
-            )
+            msg = msgpack.packb({"job_id": job_id, "payload": payload}, use_bin_type=True)
             return web.Response(body=msg, status=200)
 
         return web.Response(status=200)
+
+    async def unstale_handler(self, request: web.Request):
+        data = await request.json()
+        # print("take ==> data", data)
+        print('hey', data)
+        await Job.unstale_tasks(self.redis, **data, prefix=self.prefix)
+
+        return web.Response(text="OK", status=200)
 
     async def subscribe_one_handler(self, request):
         data = await request.json()
@@ -175,9 +177,7 @@ class TaskServer(ParamsProto, Server):
 
         async def stream_response(response):
             try:
-                async for payload in Job.subscribe_stream(
-                    self.redis, **data, prefix=self.prefix
-                ):
+                async for payload in Job.subscribe_stream(self.redis, **data, prefix=self.prefix):
                     # use msgpack.Unpacker to determin the end of message.
                     await response.write(payload)
 
@@ -211,13 +211,12 @@ class TaskServer(ParamsProto, Server):
         self._route("/tasks", self.add_job, method="PUT")
         self._route("/tasks", self.take_handler, method="POST")
         self._route("/tasks/reset", self.reset_handler, method="POST")
-        self._route("/tasks", self.remove_handle, method="DELETE")
+        self._route("/tasks", self.remove_handler, method="DELETE")
+        self._route("/tasks/unstale", self.unstale_handler, method="PUT")
 
         self._route("/publish", self.publish_job, method="PUT")
         self._route("/subscribe_one", self.subscribe_one_handler, method="POST")
-        self._route(
-            "/subscribe_stream", self.subscribe_streaming_handler, method="POST"
-        )
+        self._route("/subscribe_stream", self.subscribe_streaming_handler, method="POST")
 
         # serve local files via /static endpoint
         self._static("/static", self.static_root)

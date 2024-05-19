@@ -247,12 +247,7 @@ class Job(SimpleNamespace):
         p = r.pipeline()
         # with logger.time("setting the status"):
         payload, *_ = (
-            await p.get(job.id + ".payload")
-            .json()
-            .set(job.id, "$.status", "in_progress")
-            .json()
-            .set(job.id, "$.grab_ts", time())
-            .execute()
+            await p.get(job.id + ".payload").json().set(job.id, "$.status", "in_progress").json().set(job.id, "$.grab_ts", time()).execute()
         )
 
         job_id = job.id[len(index_name) + 1 :]
@@ -352,24 +347,27 @@ class Job(SimpleNamespace):
 
         p = r.pipeline()
         p = p.json().set(entry_name, "$.status", "created")
-        p = p.json().set(entry_name, "$.grab_ts", None)
+        p = p.json().set(entry_name, "$.grab_ts")
 
         return p.execute()
 
     @staticmethod
-    def timeout(r: "redis.asyncio.Redis", queue, *, prefix, ttl=None):
+    async def unstale_tasks(r: "redis.asyncio.Redis", queue, *, prefix, ttl=None):
+        from redis.commands.search.query import Query
+        from redis.commands.search.result import Result
+
         index_name = f"{prefix}:{queue}"
 
         if ttl:
-            result = r.ft(index_name).search(
-                "@status: { in_progress } @grab_ts: < {time() - ttl}"
-            )
+            q = Query(f"@status: {{ in_progress }} @grab_ts:[0 {time() - ttl}]")  # .paging(0, 1)
         else:
-            result = r.ft(index_name).search("@status: { in_progress }")
+            q = Query("@status: { in_progress }")  # .paging(0, 1)
+
+        result: Result = await r.ft(index_name).search(q)
 
         p = r.pipeline()
         for doc in result.docs:
             p = p.json().set(doc.id, "$.status", "created")
-            p = p.json().delete(doc.id, "$.grab_ts", None)
+            p = p.json().delete(doc.id, "$.grab_ts")
 
-        return p.execute()
+        return await p.execute()

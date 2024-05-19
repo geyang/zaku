@@ -51,6 +51,11 @@ class TaskQ(PrefixProto, cli=False):
     .. autoattribute:: ttl
     .. autoattribute:: no_init
 
+    Helper Methods
+    +++++++++++++++++++++++
+
+    .. automethod:: print_info
+
     Task Life-cycle Methods
     +++++++++++++++++++++++
 
@@ -61,6 +66,7 @@ class TaskQ(PrefixProto, cli=False):
     .. automethod:: mark_reset
     .. automethod:: pop
     .. automethod:: clear_queue
+    .. automethod:: house_keeping
 
     PubSub and RPC Methods
     +++++++++++++++++++++++
@@ -120,6 +126,10 @@ class TaskQ(PrefixProto, cli=False):
             self.init_queue()
 
     def print_info(self):
+        """Print the current configurations of the queue.
+
+        Useful for debugging or when connection fails.
+        """
         print("=============================")
         for k, v in vars(self).items():
             print(f" {k} = {v}")
@@ -144,9 +154,7 @@ class TaskQ(PrefixProto, cli=False):
             return res.status_code == 200, "failed"
 
         self.print_info()
-        raise ConnectionError(
-            "Queue creation failed, check connection."
-        ).with_traceback(None)
+        raise ConnectionError("Queue creation failed, check connection.").with_traceback(None)
 
     def publish(self, value: Dict, *, topic=None):
         """Append a job to the queue."""
@@ -246,9 +254,7 @@ class TaskQ(PrefixProto, cli=False):
 
     def mark_done(self, job_id):
         """Mark a job as done."""
-        res = requests.delete(
-            self.uri + "/tasks", json={"queue": self.name, "job_id": job_id}
-        )
+        res = requests.delete(self.uri + "/tasks", json={"queue": self.name, "job_id": job_id})
         if res.status_code == 200:
             return True
         raise Exception(f"Failed to mark job as done on {self.uri}.", res.content)
@@ -290,7 +296,23 @@ class TaskQ(PrefixProto, cli=False):
         )
         if res.status_code == 200:
             return True
+
         raise Exception(f"Failed to reset job on {self.uri}.", res.content)
+
+    def unstale_tasks(self, ttl=300):
+        """Remove all jobs in a queue. Useful when stale jobs degrades performance."""
+        print('hey')
+        res = requests.put(
+            self.uri + "/tasks/unstale",
+            json={
+                "queue": self.name,
+                "ttl": ttl,  # the ttl is not used.
+            },
+        )
+        if res.status_code == 200:
+            return True
+
+        raise Exception(f"Failed to do house keeping on {self.uri}.", res.content)
 
     def rpc(self, *args, _timeout=1.0, **kwargs):
         """
