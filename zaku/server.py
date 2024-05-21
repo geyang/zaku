@@ -185,7 +185,9 @@ class TaskServer(ParamsProto, Server):
 
             except ConnectionResetError:
                 print("client disconnected.")
-                return
+                return response
+
+            return response
 
         response = web.StreamResponse(
             status=200,
