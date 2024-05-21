@@ -341,7 +341,10 @@ class Job(SimpleNamespace):
             await p.execute()
             return count
 
-        response = p.unlink(entry_name).unlink(entry_name + ".payload").execute()
+        # fmt: off
+        response = p.unlink(entry_name) \
+                    .unlink(entry_name + ".payload").execute()
+        # fmt: on
         return await response
 
     @staticmethod
