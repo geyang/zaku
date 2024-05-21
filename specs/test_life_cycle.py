@@ -13,7 +13,6 @@ task_queue.init_queue()
 def test_empty_queue():
     """Test adding and retrieving multiple tasks"""
 
-
     while True:
         with task_queue.pop() as task:
             if task is None:
@@ -28,7 +27,6 @@ def test_add_100_tasks():
     task_queue.clear_queue()
 
     for i in trange(2, file=sys.stdout):
-
         task_queue.add({"step": i, "param_2": f"key-{i}"})
 
 
@@ -40,7 +38,6 @@ def test_unstale():
     task_queue.clear_queue()
 
     for i in trange(2, file=sys.stdout):
-
         task_queue.add({"step": i, "param_2": f"key-{i}"})
 
     for i in range(2):
@@ -58,3 +55,8 @@ def test_unstale():
         job_container = task_queue.take()
         assert job_container is not None, "should retrieve 100 task objects at this point."
 
+
+@pytest.mark.dependency(name="add_5_tasks", depends=["take"])
+def test_remove_queue():
+    """adding"""
+    task_queue.clear_queue()

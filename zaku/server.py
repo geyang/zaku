@@ -27,6 +27,7 @@ class Redis(ParamsProto, prefix="redis", cli_parse=False):
     """
 
     host: str = Proto("localhost", env="REDIS_HOST")
+
     port: int = Proto(6379, env="REDIS_PORT")
     password: str = Proto(env="REDIS_PASSWORD")
     db: int = Proto(0, env="REDIS_DB")
@@ -157,7 +158,6 @@ class TaskServer(ParamsProto, Server):
     async def unstale_handler(self, request: web.Request):
         data = await request.json()
         # print("take ==> data", data)
-        print("hey", data)
         await Job.unstale_tasks(self.redis, **data, prefix=self.prefix)
 
         return web.Response(text="OK", status=200)

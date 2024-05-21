@@ -149,7 +149,7 @@ class Job(SimpleNamespace):
     # value: Any = None
     # payload: bytes = None
     # """This is the binary encoding from the msgpack. """
-    ttl: float = None
+    # ttl: float = None
 
     @staticmethod
     async def create_queue(r: "redis.asyncio.Redis", name, *, prefix, smart=True):
@@ -204,7 +204,7 @@ class Job(SimpleNamespace):
         # value: Any,
         payload: bytes = None,
         job_id: str = None,
-        ttl: float = None,
+        # ttl: float = None,
     ) -> Coroutine:
         from uuid import uuid4
 
@@ -212,7 +212,7 @@ class Job(SimpleNamespace):
             created_ts=time(),
             status="created",
             # value=value,
-            ttl=ttl,
+            # ttl=ttl,
         )
         if job_id is None:
             job_id = str(uuid4())
@@ -245,10 +245,13 @@ class Job(SimpleNamespace):
 
         job = result.docs[0]
         p = r.pipeline()
-        # with logger.time("setting the status"):
-        payload, *_ = (
-            await p.get(job.id + ".payload").json().set(job.id, "$.status", "in_progress").json().set(job.id, "$.grab_ts", time()).execute()
-        )
+        # fmt: off
+        payload, *_ = await \
+            p.get(job.id + ".payload") \
+            .json().set(job.id, "$.status", "in_progress") \
+            .json().set(job.id, "$.grab_ts", time()) \
+            .execute()
+        # fmt: on
 
         job_id = job.id[len(index_name) + 1 :]
         return job_id, payload
@@ -333,12 +336,12 @@ class Job(SimpleNamespace):
         if job_id == "*":
             count = 0
             async for key in r.scan_iter(entry_name):
-                p = p.delete(key)
+                p = p.unlink(key)
                 count += 1
             await p.execute()
             return count
 
-        response = p.json().delete(entry_name).delete(entry_name + ".payload").execute()
+        response = p.unlink(entry_name).unlink(entry_name + ".payload").execute()
         return await response
 
     @staticmethod
@@ -347,7 +350,7 @@ class Job(SimpleNamespace):
 
         p = r.pipeline()
         p = p.json().set(entry_name, "$.status", "created")
-        p = p.json().set(entry_name, "$.grab_ts", None)
+        p = p.json().delete(entry_name, "$.grab_ts")
 
         return p.execute()
 

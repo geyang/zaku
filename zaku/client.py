@@ -223,7 +223,7 @@ class TaskQ(PrefixProto, cli=False):
             "queue": self.name,
             "job_id": key,
             "payload": payload.serialize(),
-            "ttl": self.ttl,
+            # "ttl": self.ttl,
         }
         # ues msgpack to serialize the data. Bytes are the most efficient.
         res = requests.put(
