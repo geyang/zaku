@@ -195,7 +195,7 @@ class TaskServer(ParamsProto, Server):
             headers={"Content-Type": "text/plain"},
         )
         await response.prepare(request)
-        response = await stream_response(response)
+        await stream_response(response)
         return response
 
     def setup_server(self):
