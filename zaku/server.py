@@ -27,11 +27,29 @@ class Redis(ParamsProto, prefix="redis", cli_parse=False):
     """
 
     host: str = Proto("localhost", env="REDIS_HOST")
+    sentinel_hosts: str = Proto("", env="SENTINEL_HOSTS", help="comma separated list of redis hosts.")
+    cluster_name = Proto("primary", env="SENTINEL_CLUSTER_NAME")
+    shuffle: bool = Proto(False, env="REDIS_SHUFFLE", help="shuffle the sentinel hosts on init.")
 
     port: int = Proto(6379, env="REDIS_PORT")
     password: str = Proto(env="REDIS_PASSWORD")
-    db: int = Proto(0, env="REDIS_DB")
-    """The logical redis database, from 0 - 15. """
+    db: int = Proto(0, env="REDIS_DB", help="The logical redis database, from 0 - 15.")
+
+    def __post_init__(self, _deps=None):
+        if self.sentinel_hosts:
+            import random
+
+            self.sentinel_hosts = [h.split(":") for h in self.sentinel_hosts.split(",")]
+
+            if self.shuffle:
+                self.sentinel_hosts = random.shuffle(self.sentinel_hosts, key=lambda x: hash(x))
+
+            self.sentinel = redis.asyncio.sentinel.Sentinel(self.sentinel_hosts)
+
+            self.connection = self.sentinel.master_for(self.cluster_name, password=self.password, db=self.db)
+
+        else:
+            self.connection = redis.asyncio.Redis(password=self.password, db=self.db, host=self.host, port=self.port)
 
 
 class TaskServer(ParamsProto, Server):
@@ -106,7 +124,8 @@ class TaskServer(ParamsProto, Server):
             self.print_info()
 
         Server.__post_init__(self)
-        self.redis = redis.asyncio.Redis(**vars(Redis))
+        self.redis_wrapper = Redis()
+        self.redis = self.redis_wrapper.connection
 
     async def create_queue(self, request: web.Request):
         data = await request.json()

@@ -152,7 +152,7 @@ class Job(SimpleNamespace):
     # ttl: float = None
 
     @staticmethod
-    async def create_queue(r: "redis.asyncio.Redis", name, *, prefix, smart=True):
+    async def create_queue(r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"], name, *, prefix, smart=True):
         from redis import ResponseError
         from redis.commands.search.field import TagField, NumericField
         from redis.commands.search.indexDefinition import IndexType, IndexDefinition
@@ -191,13 +191,13 @@ class Job(SimpleNamespace):
             )
 
     @staticmethod
-    async def remove_queue(r: "redis.asyncio.Redis", queue, *, prefix):
+    async def remove_queue(r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"], queue, *, prefix):
         index_name = f"{prefix}:{queue}"
         return await r.ft(index_name).dropindex()
 
     @staticmethod
     def add(
-        r: "redis.asyncio.Redis",
+        r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"],
         queue: str,
         *,
         prefix: str,
@@ -226,7 +226,7 @@ class Job(SimpleNamespace):
         return p.execute()
 
     @staticmethod
-    async def take(r: "redis.asyncio.Redis", queue, *, prefix) -> Tuple[Any, Any]:
+    async def take(r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"], queue, *, prefix) -> Tuple[Any, Any]:
         # from ml_logger import logger
 
         from redis.commands.search.query import Query
@@ -258,7 +258,7 @@ class Job(SimpleNamespace):
 
     @staticmethod
     async def publish(
-        r: "redis.asyncio.Redis",
+        r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"],
         queue: str,
         *,
         payload: bytes,
@@ -274,7 +274,7 @@ class Job(SimpleNamespace):
     # todo: implement streaming mode.
     @staticmethod
     async def subscribe(
-        r: "redis.asyncio.Redis",
+        r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"],
         queue: str,
         *,
         topic_id: str,
@@ -302,7 +302,7 @@ class Job(SimpleNamespace):
 
     @staticmethod
     async def subscribe_stream(
-        r: "redis.asyncio.Redis",
+        r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"],
         queue: str,
         *,
         topic_id: str,
@@ -328,7 +328,7 @@ class Job(SimpleNamespace):
                     yield payload
 
     @staticmethod
-    async def remove(r: "redis.asyncio.Redis", job_id, queue, *, prefix):
+    async def remove(r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"], job_id, queue, *, prefix):
         entry_name = f"{prefix}:{queue}:{job_id}"
 
         p = r.pipeline()
@@ -348,7 +348,7 @@ class Job(SimpleNamespace):
         return await response
 
     @staticmethod
-    def reset(r: "redis.asyncio.Redis", job_id, queue, *, prefix):
+    def reset(r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"], job_id, queue, *, prefix):
         entry_name = f"{prefix}:{queue}:{job_id}"
 
         p = r.pipeline()
@@ -358,7 +358,7 @@ class Job(SimpleNamespace):
         return p.execute()
 
     @staticmethod
-    async def unstale_tasks(r: "redis.asyncio.Redis", queue, *, prefix, ttl=None):
+    async def unstale_tasks(r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"], queue, *, prefix, ttl=None):
         from redis.commands.search.query import Query
         from redis.commands.search.result import Result
 
