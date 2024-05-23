@@ -70,13 +70,15 @@ def worker_process(queue_name):
     job = None
     while not job:
         with queue.pop() as job:
+
             if job is None:
                 continue
 
             topic = job.pop("_request_id")
 
-            # we simulate a long-running job.
+            # we simulate a long-running job. Make sure you clear the queue first though.
             sleep(1.0)
+
             # we return the result to the response topic.
             queue.publish(
                 {"result": "good", **job},
@@ -92,14 +94,15 @@ def test_rpc():
 
     queue_name = "ZAKU_TEST:debug-rpc-queue"
     rpc_queue = TaskQ(name=queue_name, uri="http://localhost:9000")
-    rpc_queue.init_queue()
+    # this is important, otherwise the worker will get suck with
+    # an old message.
+    rpc_queue.clear_queue()
 
     p = Process(target=worker_process, args=(queue_name,))
     p.start()
 
     result = rpc_queue.rpc(seed=100, _timeout=2)
     assert result["seed"] == 100, "the seed should be correct"
-
     p.join()
 
 

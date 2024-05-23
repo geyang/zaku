@@ -301,7 +301,6 @@ class TaskQ(PrefixProto, cli=False):
 
     def unstale_tasks(self, ttl=300):
         """Remove all jobs in a queue. Useful when stale jobs degrades performance."""
-        print('hey')
         res = requests.put(
             self.uri + "/tasks/unstale",
             json={

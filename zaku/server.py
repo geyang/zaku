@@ -5,11 +5,14 @@ from params_proto import Proto, ParamsProto, Flag
 
 from zaku.base import Server
 from zaku.interfaces import Job
-from zaku.redis_helpers import RobustRedis
 
 
 class Redis(ParamsProto, prefix="redis", cli_parse=False):
     """Redis Configuration for the TaskServer class.
+
+    Setting keepalive: ConnectionError is due to timeout. See below for more infomation.
+
+    https://devcenter.heroku.com/articles/ah-redis-stackhero#:~:text=The%20error%20%E2%80%9Credis.,and%20the%20connection%20closes%20automatically
 
     .. code-block:: shell
 
@@ -28,13 +31,25 @@ class Redis(ParamsProto, prefix="redis", cli_parse=False):
     """
 
     host: str = Proto("localhost", env="REDIS_HOST")
-    sentinel_hosts: str = Proto("", env="SENTINEL_HOSTS", help="comma separated list of redis hosts.")
+    port: int = Proto(6379, env="REDIS_PORT")
+    password: str = Proto(env="REDIS_PASSWORD")
+
+    # todo: add support for cluster mode without sentinel.
+    sentinel_hosts: str = Proto(
+        env="SENTINEL_HOSTS", help="comma separated list of redis hosts. Example: host1:port1,host2:port2,host3:port3."
+    )
+    sentinel_password: str = Proto(password, env="SENTINEL_PASSWORD")
+
     cluster_name = Proto("primary", env="SENTINEL_CLUSTER_NAME")
     shuffle: bool = Proto(False, env="REDIS_SHUFFLE", help="shuffle the sentinel hosts on init.")
 
-    port: int = Proto(6379, env="REDIS_PORT")
-    password: str = Proto(env="REDIS_PASSWORD")
     db: int = Proto(0, env="REDIS_DB", help="The logical redis database, from 0 - 15.")
+
+    # connection arguments
+    health_check_interval = 10
+    socket_connect_timeout = 5
+    retry_on_timeout = True
+    socket_keepalive = True
 
     def __post_init__(self, _deps=None):
         if self.sentinel_hosts:
@@ -45,12 +60,30 @@ class Redis(ParamsProto, prefix="redis", cli_parse=False):
             if self.shuffle:
                 self.sentinel_hosts = random.shuffle(self.sentinel_hosts, key=lambda x: hash(x))
 
-            self.sentinel = redis.asyncio.sentinel.Sentinel(self.sentinel_hosts, redis_class=RobustRedis)
+            self.sentinel = redis.asyncio.sentinel.Sentinel(
+                self.sentinel_hosts,
+                # redis_class=RobustRedis,
+                password=self.sentinel_password,
+                health_check_interval=self.health_check_interval,
+                socket_connect_timeout=self.socket_connect_timeout,
+                retry_on_timeout=self.retry_on_timeout,
+                socket_keepalive=self.socket_keepalive,
+            )
 
             self.connection = self.sentinel.master_for(self.cluster_name, password=self.password, db=self.db)
 
         else:
-            self.connection = RobustRedis(password=self.password, db=self.db, host=self.host, port=self.port)
+            # self.connection = RobustRedis(password=self.password, db=self.db, host=self.host, port=self.port)
+            self.connection = redis.asyncio.Redis(
+                password=self.password,
+                db=self.db,
+                host=self.host,
+                port=self.port,
+                health_check_interval=self.health_check_interval,
+                socket_connect_timeout=self.socket_connect_timeout,
+                retry_on_timeout=self.retry_on_timeout,
+                socket_keepalive=self.socket_keepalive,
+            )
 
 
 class TaskServer(ParamsProto, Server):
@@ -120,21 +153,22 @@ class TaskServer(ParamsProto, Server):
             print(f" {k} = {v},")
         print("-----------------------------")
 
-    def __post_init__(self):
+    def __post_init__(self, _deps=None):
         if self.verbose:
             self.print_info()
 
         Server.__post_init__(self)
-        self.redis_wrapper = Redis()
+
+        self.redis_wrapper = Redis(_deps)
         self.redis = self.redis_wrapper.connection
 
     async def create_queue(self, request: web.Request):
         data = await request.json()
-        # print("==>", data)
         try:
             await Job.create_queue(self.redis, **data, prefix=self.prefix)
-        except Exception:
-            return web.Response(text="index already exists", status=400)
+        except Exception as e:
+            # the error handling here is not ideal.
+            return web.Response(text="ERROR: " + str(e), status=200)
 
         return web.Response(text="OK")
 

@@ -161,8 +161,6 @@ class Job(SimpleNamespace):
         index_name = f"{prefix}:{name}"
         index_prefix = f"{prefix}:{name}:"
 
-        print("creating queue:", index_name)
-
         schema = (
             NumericField("$.created_ts", as_name="created_ts"),
             TagField("$.status", as_name="status"),
