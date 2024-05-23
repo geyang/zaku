@@ -5,6 +5,7 @@ from params_proto import Proto, ParamsProto, Flag
 
 from zaku.base import Server
 from zaku.interfaces import Job
+from zaku.redis_helpers import RobustRedis
 
 
 class Redis(ParamsProto, prefix="redis", cli_parse=False):
@@ -44,12 +45,12 @@ class Redis(ParamsProto, prefix="redis", cli_parse=False):
             if self.shuffle:
                 self.sentinel_hosts = random.shuffle(self.sentinel_hosts, key=lambda x: hash(x))
 
-            self.sentinel = redis.asyncio.sentinel.Sentinel(self.sentinel_hosts)
+            self.sentinel = redis.asyncio.sentinel.Sentinel(self.sentinel_hosts, redis_class=RobustRedis)
 
             self.connection = self.sentinel.master_for(self.cluster_name, password=self.password, db=self.db)
 
         else:
-            self.connection = redis.asyncio.Redis(password=self.password, db=self.db, host=self.host, port=self.port)
+            self.connection = RobustRedis(password=self.password, db=self.db, host=self.host, port=self.port)
 
 
 class TaskServer(ParamsProto, Server):
@@ -166,8 +167,15 @@ class TaskServer(ParamsProto, Server):
 
     async def take_handler(self, request):
         data = await request.json()
-        # print("take ==> data", data)
-        job_id, payload = await Job.take(self.redis, **data, prefix=self.prefix)
+
+        try:
+            job_id, payload = await Job.take(self.redis, **data, prefix=self.prefix)
+        except redis.exceptions.ResponseError as e:
+            if "no such index" in str(e):
+                return web.Response(status=200)
+                # return web.Response(text="no such index", status=404)
+            raise e
+
         if payload:
             msg = msgpack.packb({"job_id": job_id, "payload": payload}, use_bin_type=True)
             return web.Response(body=msg, status=200)

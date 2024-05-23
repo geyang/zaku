@@ -146,13 +146,14 @@ class Job(SimpleNamespace):
     created_ts: float
     status: Literal[None, "in_progress", "created"] = "created"
     grab_ts: float = None
+
     # value: Any = None
     # payload: bytes = None
     # """This is the binary encoding from the msgpack. """
     # ttl: float = None
 
     @staticmethod
-    async def create_queue(r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"], name, *, prefix, smart=True):
+    async def create_queue(r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"], name, *, prefix):
         from redis import ResponseError
         from redis.commands.search.field import TagField, NumericField
         from redis.commands.search.indexDefinition import IndexType, IndexDefinition
@@ -177,18 +178,9 @@ class Job(SimpleNamespace):
                     index_type=IndexType.JSON,
                 ),
             )
-        except ResponseError:
-            if not smart:
+        except ResponseError as e:
+            if "Index already exists" in str(e):
                 return
-
-            await r.ft(index_name).dropindex()
-            await r.ft(index_name).create_index(
-                schema,
-                definition=IndexDefinition(
-                    prefix=[index_prefix],
-                    index_type=IndexType.JSON,
-                ),
-            )
 
     @staticmethod
     async def remove_queue(r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"], queue, *, prefix):
@@ -237,8 +229,6 @@ class Job(SimpleNamespace):
         # note: search ranks results via FTIDF. Use aggregation to sort by created_ts
         q = Query("@status: { created }").paging(0, 1)
         result: Result = await r.ft(index_name).search(q)
-        # with logger.time("finding first document"):
-        #     result: Result = await r.ft(index_name).search(q)
 
         if not result.total:
             return None, None

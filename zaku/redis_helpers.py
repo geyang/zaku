@@ -1,31 +1,31 @@
-class SentinelAwareStrictRedis(StrictRedis):
-    """ Handles case when failover happened without loosing connection to old master
-    """
+import redis
+from redis import ResponseError, WatchError
+
+
+class RobustRedis(redis.asyncio.Redis):
+    """Handles case when failover happened without loosing connection to old master"""
+
     def execute_command(self, *args, **options):
         try:
-            return super(SentinelAwareStrictRedis, self).execute_command(*args, **options)
+            return super().execute_command(*args, **options)
         except ResponseError as e:
             if not e.message.startswith("READONLY"):
                 raise
             old_master = self.connection_pool.master_address
             new_master = self.connection_pool.get_master_address()
+            print("disconnecting")
             self.connection_pool.disconnect()
-            return super(SentinelAwareStrictRedis, self).execute_command(*args, **options)
+            return super().execute_command(*args, **options)
 
     def pipeline(self, transaction=True, shard_hint=None):
-        return SentinelAwareStrictPipeline(
-            self.connection_pool,
-            self.response_callbacks,
-            transaction,
-            shard_hint
-        )
+        return SentinelAwarePipeline(self.connection_pool, self.response_callbacks, transaction, shard_hint)
 
 
-class SentinelAwareStrictPipeline(StrictPipeline):
+class SentinelAwarePipeline(redis.asyncio.client.Pipeline):
     def execute(self, raise_on_error=True):
         stack = self.command_stack
         try:
-            return super(SentinelAwareStrictPipeline, self).execute(raise_on_error)
+            return super(SentinelAwarePipeline, self).execute(raise_on_error)
         except ResponseError as e:
             if "READONLY" not in e.message:
                 raise
@@ -37,4 +37,4 @@ class SentinelAwareStrictPipeline(StrictPipeline):
             new_master = self.connection_pool.get_master_address()
             self.reset()
             self.connection_pool.disconnect()
-            return super(SentinelAwareStrictPipeline, self).execute(raise_on_error)
+            return super(SentinelAwarePipeline, self).execute(raise_on_error)
