@@ -244,13 +244,13 @@ class TaskQ(PrefixProto, cli=False):
             raise RuntimeError(f"Failed to grab job from {self.uri}.", response.content)
 
         elif not response.content:
-            return None, None
+            return None
             # raise RuntimeError("response from zaku server is empty")
 
         data = msgpack.loads(response.content)
         # print("take ==> ", data)
         payload = data.get("payload", None)
-        return data["job_id"], (Payload.deserialize(payload) if payload else None)
+        return data["job_id"], Payload.deserialize(payload) if payload else None
 
     def mark_done(self, job_id):
         """Mark a job as done."""
@@ -425,11 +425,13 @@ class TaskQ(PrefixProto, cli=False):
             job = True
             while gather_set and (blocking or job):
                 # this is not ideal
-                job_id, job = gather_queue.take()
-                if job is None:
+                ret = gather_queue.take()
+                if ret is None:
+                    job = None
                     time.sleep(sleep)
                     continue
 
+                job_id, job = ret
                 gather_queue.mark_done(job_id)
 
                 try:
