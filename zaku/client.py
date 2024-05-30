@@ -56,6 +56,12 @@ class TaskQ(PrefixProto, cli=False):
 
     .. automethod:: print_info
 
+    Queue Info
+    +++++++++++++++++++++++
+
+    .. automethod:: count
+    .. automethod:: __len__
+
     Task Life-cycle Methods
     +++++++++++++++++++++++
 
@@ -77,6 +83,11 @@ class TaskQ(PrefixProto, cli=False):
     .. automethod:: rpc
     .. automethod:: rpc_stream
 
+    Async Workflow
+    +++++++++++++++
+
+    .. automethod:: gather
+    .. automethod:: gather_one
     """
 
     uri: str = Proto(
