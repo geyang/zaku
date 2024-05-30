@@ -382,15 +382,18 @@ class TaskQ(PrefixProto, cli=False):
 
         return self.subscribe_stream(topic_name, timeout=_timeout)
 
-    def gather(self, jobs, rq_prefix="zaku:return-queues:r-{r_id}", return_tokens=False):
+    def gather_one(self, job, gather_tokens=None, **kwargs):
+        return self.gather(jobs=[job], gather_tokens=gather_tokens, **kwargs)
+
+    def gather(self, jobs: list, gather_tokens=None, prefix="{self.name}.return-queue"):
         """Gather the jobs (not quite, will fix - Ge)
 
         :param self:
         :type self: TaskQ
         :param jobs:
         :type jobs: dict
-        :param rq_prefix:
-        :type rq_prefix: str
+        :param prefix:
+        :type prefix: str
         :param return_tokens:
         :type return_tokens: bool
         :return: Union[Callable, [Callable, set]]
@@ -399,15 +402,15 @@ class TaskQ(PrefixProto, cli=False):
         from uuid import uuid4
 
         r_id = uuid4()
-        r_queue_name = rq_prefix.format(r_id=r_id)
+        r_queue_name = prefix.format(self=self, r_id=r_id)
         gather_queue = TaskQ(name=r_queue_name)
 
-        gather_set = set()
+        gather_tokens = gather_tokens or set()
 
         for job in jobs:
             # this casts it to string
             gather_token = f"gather-{uuid4()}"
-            gather_set.add(gather_token)
+            gather_tokens.add(gather_token)
 
             r_spec = {
                 "_gather_id": r_queue_name,
@@ -420,10 +423,11 @@ class TaskQ(PrefixProto, cli=False):
 
         def is_done(blocking=False, sleep=0.1):
             import time
-            nonlocal gather_queue, gather_set
+
+            nonlocal gather_queue, gather_tokens
 
             job = True
-            while gather_set and (blocking or job):
+            while gather_tokens and (blocking or job):
                 # this is not ideal
                 ret = gather_queue.take()
                 if ret is None:
@@ -441,14 +445,11 @@ class TaskQ(PrefixProto, cli=False):
                     raise
 
                 try:
-                    gather_set.remove(gt)
+                    gather_tokens.remove(gt)
                 except KeyError:
                     pass
                 # no sleep here.
 
-            return not gather_set
+            return not gather_tokens
 
-        if gather_set:
-            return is_done, gather_set
-        else:
-            return is_done
+        return is_done, gather_tokens
