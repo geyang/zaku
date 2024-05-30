@@ -143,9 +143,8 @@ class TaskQ(PrefixProto, cli=False):
         if name:
             self.name = name
 
-        print("creating queue...", self.name)
-
         if self.verbose:
+            print("creating queue...", self.name)
             self.print_info()
 
         # Establish clean error traces for better debugging.
@@ -242,15 +241,16 @@ class TaskQ(PrefixProto, cli=False):
         )
 
         if response.status_code != 200:
-            raise Exception(f"Failed to grab job from {self.uri}.", response.content)
+            raise RuntimeError(f"Failed to grab job from {self.uri}.", response.content)
 
         elif not response.content:
-            return
+            return None, None
+            # raise RuntimeError("response from zaku server is empty")
 
         data = msgpack.loads(response.content)
         # print("take ==> ", data)
         payload = data.get("payload", None)
-        return data["job_id"], Payload.deserialize(payload) if payload else None
+        return data["job_id"], (Payload.deserialize(payload) if payload else None)
 
     def mark_done(self, job_id):
         """Mark a job as done."""
@@ -381,3 +381,72 @@ class TaskQ(PrefixProto, cli=False):
         )
 
         return self.subscribe_stream(topic_name, timeout=_timeout)
+
+    def gather(self, jobs, rq_prefix="zaku:return-queues:r-{r_id}", return_tokens=False):
+        """Gather the jobs (not quite, will fix - Ge)
+
+        :param self:
+        :type self: TaskQ
+        :param jobs:
+        :type jobs: dict
+        :param rq_prefix:
+        :type rq_prefix: str
+        :param return_tokens:
+        :type return_tokens: bool
+        :return: Union[Callable, [Callable, set]]
+        :rtype:
+        """
+        from uuid import uuid4
+
+        r_id = uuid4()
+        r_queue_name = rq_prefix.format(r_id=r_id)
+        gather_queue = TaskQ(name=r_queue_name)
+
+        gather_set = set()
+
+        for job in jobs:
+            # this casts it to string
+            gather_token = f"gather-{uuid4()}"
+            gather_set.add(gather_token)
+
+            r_spec = {
+                "_gather_id": r_queue_name,
+                "_gather_token": gather_token,
+            }
+
+            # # after the set should contain all
+            # for job in jobs:
+            self.add({**r_spec, **job})
+
+        def is_done(blocking=False, sleep=0.1):
+            import time
+            nonlocal gather_queue, gather_set
+
+            job = True
+            while gather_set and (blocking or job):
+                # this is not ideal
+                job_id, job = gather_queue.take()
+                if job is None:
+                    time.sleep(sleep)
+                    continue
+
+                gather_queue.mark_done(job_id)
+
+                try:
+                    gt = job["_gather_token"]
+                except KeyError:
+                    gather_queue.clear_queue()
+                    raise
+
+                try:
+                    gather_set.remove(gt)
+                except KeyError:
+                    pass
+                # no sleep here.
+
+            return not gather_set
+
+        if gather_set:
+            return is_done, gather_set
+        else:
+            return is_done
