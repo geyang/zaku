@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "zaku"
-version = "0.0.15-rc7"
+version = "0.0.15rc8"
 description = "Zaku Task Queue is for distributed ML-workloads."
 readme = "README.md"
 license = { text = "MIT" }
