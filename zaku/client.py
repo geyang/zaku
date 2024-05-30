@@ -418,20 +418,80 @@ class TaskQ(PrefixProto, cli=False):
         return self.subscribe_stream(topic_name, timeout=_timeout)
 
     def gather_one(self, job, gather_tokens=None, **kwargs):
-        return self.gather(jobs=[job], gather_tokens=gather_tokens, **kwargs)
-
-    def gather(self, jobs: list, gather_tokens=None, prefix="{self.name}.return-queue"):
         """Gather the jobs (not quite, will fix - Ge)
+
+        Usage
+        +++++
+
+        .. code-block:: python
+
+            queue = TaskQ()
+
+            tokens = None
+            for i in range(30):
+                is_done, tokens = job_queue.gather_one(jobs, tokens)
+
+            # this is blocking.
+            if is_done():
+                print("done")
 
         :param self:
         :type self: TaskQ
         :param jobs:
         :type jobs: dict
+        :param gather_tokens: this is a singleton, a set that contains just one element, unless you pass in another token set.
+        :type gather_tokens: Union[None, set]
         :param prefix:
         :type prefix: str
-        :param return_tokens:
-        :type return_tokens: bool
-        :return: Union[Callable, [Callable, set]]
+        :return: Union[Callable, set]
+        :rtype:
+        """
+        return self.gather(jobs=[job], gather_tokens=gather_tokens, **kwargs)
+
+    def gather(self, jobs: list, gather_tokens=None, prefix="{self.name}.return-queue"):
+        """Gather the jobs (not quite, will fix - Ge)
+
+        Usage
+        +++++
+
+        .. code-block:: python
+
+            queue = TaskQ()
+
+            jobs = [dict(seed=i) for i in range(30)]
+            is_done, tokens = job_queue.gather(jobs)
+
+            # this is blocking.
+            if is_done():
+                print("done")
+
+
+        Now, to add jobs in batches:
+
+        .. code-block:: python
+
+            queue = TaskQ()
+
+            jobs = [dict(seed=i) for i in range(30)]
+            is_done, tokens = job_queue.gather(jobs)
+
+            # add the second batch
+            jobs = [dict(seed=i) for i in range(30, 50)]
+            is_done, tokens = job_queue.gather(jobs, tokens)
+
+            # now wait for done.
+            if is_done():
+                print("done")
+
+        :param self:
+        :type self: TaskQ
+        :param jobs:
+        :type jobs: dict
+        :param gather_tokens: This is a set that you can add to, contains the list of tokens
+        :type gather_tokens: Union[None, set]
+        :param prefix:
+        :type prefix: str
+        :return: Union[Callable, set]
         :rtype:
         """
         from uuid import uuid4
