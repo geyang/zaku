@@ -19,7 +19,6 @@ def worker_process(queue_name):
                 sleep(0.1)
                 continue
 
-            print(job)
             # these are boilerplates that we prob want to remove from the user's space.
             gather_queue_name = job.pop("_gather_id")  # "gather id must be in"
             gather_queue = TaskQ(name=gather_queue_name)
@@ -92,12 +91,6 @@ def test_gather_imperative():
     tokens = None
     for j in jobs:
         is_done, tokens = job_queue.gather_one(j, tokens)
-
-    while not is_done(blocking=False):
-        print("is launching")
-        p = Process(target=worker_process, args=(queue_name,))
-        p.start()
-        procs.append(p)
 
     print("waiting...")
     assert is_done(blocking=True), "done should mark to be True"
