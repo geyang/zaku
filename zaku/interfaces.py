@@ -216,9 +216,20 @@ class Job(SimpleNamespace):
         return p.execute()
 
     @staticmethod
-    async def take(r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"], queue, *, prefix) -> Tuple[Any, Any]:
-        # from ml_logger import logger
+    async def count_files(r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"], queue, *, prefix) -> int:
+        from redis.commands.search.query import Query
+        from redis.commands.search.result import Result
 
+        index_name = f"{prefix}:{queue}"
+
+        # Create the query to count the files with the status 'created'
+        q = Query("@status: { created }").paging(0, 0)  # Set paging to 0, 0 to avoid fetching any actual documents
+        result: Result = await r.ft(index_name).search(q)
+
+        return result.total  # Return the total number of matching documents
+
+    @staticmethod
+    async def take(r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"], queue, *, prefix) -> Tuple[Any, Any]:
         from redis.commands.search.query import Query
         from redis.commands.search.result import Result
 

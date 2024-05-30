@@ -233,6 +233,21 @@ class TaskQ(PrefixProto, cli=False):
             return key
         raise Exception(f"Failed to add job to {self.uri}.", res.content)
 
+    def count(self):
+        response = requests.get(
+            self.uri + "/tasks/counts",
+            json={"queue": self.name},
+        )
+
+        if response.status_code != 200:
+            raise RuntimeError(f"Failed to count job from {self.uri}.", response.content)
+
+        elif not response.content:
+            return None
+
+        data = msgpack.loads(response.content)
+        return data.get("counts", None)
+
     def take(self):
         """Grab a job that has not been grabbed from the queue."""
         response = requests.post(

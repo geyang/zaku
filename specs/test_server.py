@@ -26,7 +26,15 @@ def test_add_5_tasks():
         task_queue.add({"step": i, "param_2": f"key-{i}"})
 
 
-@pytest.mark.dependency(name="take", depends=["add_5_tasks", "empty_queue"])
+@pytest.mark.dependency(name="count", depends=["add_5_tasks", "empty_queue"])
+def test_counts():
+    """Test adding and retrieving multiple tasks"""
+    counts = task_queue.count()
+
+    assert counts == 5, "should retrieve five task objects"
+
+
+@pytest.mark.dependency(name="take", depends=["add_5_tasks", "count", "empty_queue"])
 def test_take():
     """Test adding and retrieving multiple tasks"""
     for i in range(10):
@@ -62,9 +70,7 @@ def test_numpy_tensor():
     task = {"step": 0, "array": np.random.random([5, 10])}
     task_queue.add(task)
     with task_queue.pop() as retrieved_task:
-        assert np.allclose(
-            retrieved_task["array"], task["array"]
-        ), "numpy arrays mismatch."
+        assert np.allclose(retrieved_task["array"], task["array"]), "numpy arrays mismatch."
 
 
 @pytest.mark.dependency(depends=["empty_queue"])
@@ -76,9 +82,7 @@ def test_torch_tensor():
     task_queue.add(task)
 
     with task_queue.pop() as retrieved_task:
-        assert torch.allclose(
-            retrieved_task["tensor"], task["tensor"]
-        ), "torch tensor mismatch."
+        assert torch.allclose(retrieved_task["tensor"], task["tensor"]), "torch tensor mismatch."
 
 
 @pytest.mark.dependency(depends=["empty_queue"])

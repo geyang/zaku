@@ -199,6 +199,20 @@ class TaskServer(ParamsProto, Server):
         await Job.remove(self.redis, **data, prefix=self.prefix)
         return web.Response(text="OK")
 
+    async def count_files_handler(self, request):
+        data = await request.json()
+
+        try:
+            counts = await Job.count_files(self.redis, **data, prefix=self.prefix)
+        except redis.exceptions.ResponseError as e:
+            if "no such index" in str(e):
+                return web.Response(status=200)
+                # return web.Response(text="no such index", status=404)
+            raise e
+
+        msg = msgpack.packb({"counts": counts}, use_bin_type=True)
+        return web.Response(body=msg, status=200)
+
     async def take_handler(self, request):
         data = await request.json()
 
@@ -266,6 +280,7 @@ class TaskServer(ParamsProto, Server):
         self._route("/queues", self.create_queue, method="PUT")
         self._route("/tasks", self.add_job, method="PUT")
         self._route("/tasks", self.take_handler, method="POST")
+        self._route("/tasks/counts", self.count_files_handler, method="GET")
         self._route("/tasks/reset", self.reset_handler, method="POST")
         self._route("/tasks", self.remove_handler, method="DELETE")
         self._route("/tasks/unstale", self.unstale_handler, method="PUT")
