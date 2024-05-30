@@ -234,6 +234,12 @@ class TaskQ(PrefixProto, cli=False):
         raise Exception(f"Failed to add job to {self.uri}.", res.content)
 
     def count(self):
+        """Count the number of available jobs in the queue.
+
+        :return None if the queue does not exist. This happens when there is no stale jobs.
+                0 if the queue only contains stale jobs
+                number if the queue contains open jobs (created)
+        """
         response = requests.get(
             self.uri + "/tasks/counts",
             json={"queue": self.name},
@@ -247,6 +253,9 @@ class TaskQ(PrefixProto, cli=False):
 
         data = msgpack.loads(response.content)
         return data.get("counts", None)
+
+    def __len__(self):
+        return self.count()
 
     def take(self):
         """Grab a job that has not been grabbed from the queue."""
