@@ -247,6 +247,10 @@ class TaskQ(PrefixProto, cli=False):
     def count(self):
         """Count the number of available jobs in the queue.
 
+        .. code-block:: python
+
+            num_of_jobs = queue.count()
+
         :return None if the queue does not exist. This happens when there is no stale jobs.
                 0 if the queue only contains stale jobs
                 number if the queue contains open jobs (created)
@@ -266,6 +270,21 @@ class TaskQ(PrefixProto, cli=False):
         return data.get("counts", None)
 
     def __len__(self):
+        """Returns the number of available jobs in the queue.
+
+        .. code-block:: python
+
+            length = len(queue)
+
+
+        .. hint::
+
+            This is an alias of TaskQ.count.
+
+        :return None if the queue does not exist. This happens when there is no stale jobs.
+                0 if the queue only contains stale jobs
+                number if the queue contains open jobs (created)
+        """
         return self.count()
 
     def take(self):
