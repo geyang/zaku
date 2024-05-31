@@ -1,5 +1,4 @@
 from io import BytesIO
-from textwrap import dedent
 from time import time, perf_counter
 from types import SimpleNamespace
 from typing import Literal, Any, Coroutine, Dict, Union, TYPE_CHECKING, Tuple
@@ -259,8 +258,8 @@ class Job(SimpleNamespace):
             return None, None
 
         job_key = result[0].decode() if isinstance(result[0], bytes) else result[0]
-        payload = await r.get(job_key + '.payload')  # Retrieve the payload separately as bytes
-        job_id = job_key[len(index_name) + 1:]
+        payload = await r.get(job_key + ".payload")  # Retrieve the payload separately as bytes
+        job_id = job_key[len(index_name) + 1 :]
 
         return job_id, payload
 
