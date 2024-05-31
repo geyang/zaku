@@ -320,6 +320,7 @@ class TaskQ(PrefixProto, cli=False):
         )
         if res.status_code == 200:
             return True
+
         raise Exception(f"Failed to reset job on {self.uri}.", res.content)
 
     @contextmanager
