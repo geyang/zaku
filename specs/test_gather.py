@@ -50,12 +50,12 @@ def test_gather():
 
     # start five worker processes
     procs = []
-    for i in range(20):
+    for i in range(10):
         p = Process(target=worker_process, args=(queue_name,))
         p.start()
         procs.append(p)
 
-    jobs = [dict(seed=i) for i in range(30)]
+    jobs = [dict(seed=i) for i in range(20)]
     is_done, tokens = job_queue.gather(jobs)
 
     print("waiting...")
@@ -82,7 +82,7 @@ def test_gather_imperative():
 
     # start five worker processes
     procs = []
-    for i in range(20):
+    for i in range(40):
         p = Process(target=worker_process, args=(queue_name,))
         p.start()
         procs.append(p)

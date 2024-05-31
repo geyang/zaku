@@ -1,4 +1,5 @@
 from io import BytesIO
+from textwrap import dedent
 from time import time, perf_counter
 from types import SimpleNamespace
 from typing import Literal, Any, Coroutine, Dict, Union, TYPE_CHECKING, Tuple
@@ -230,29 +231,37 @@ class Job(SimpleNamespace):
 
     @staticmethod
     async def take(r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"], queue, *, prefix) -> Tuple[Any, Any]:
-        from redis.commands.search.query import Query
-        from redis.commands.search.result import Result
+        # Lua script for atomic operation
+
+        lua_script = """
+        local index_name = KEYS[1]
+        local current_time = ARGV[1]
+
+        -- Search for the job with status 'created'
+        local job_result = redis.call('FT.SEARCH', index_name, '@status:{created}', 'LIMIT', '0', '1')
+        if tonumber(job_result[1]) == 0 then
+            return {nil, nil}
+        end
+
+        local job_id = job_result[2]
+        redis.call('JSON.SET', job_id, '$.status', '"in_progress"')
+        redis.call('JSON.SET', job_id, '$.grab_ts', current_time)
+        return {job_id}
+        """
 
         index_name = f"{prefix}:{queue}"
 
-        # note: search ranks results via FTIDF. Use aggregation to sort by created_ts
-        q = Query("@status: { created }").paging(0, 1)
-        result: Result = await r.ft(index_name).search(q)
+        # Execute Lua script
+        current_time = str(time())
+        result = await r.eval(lua_script, 1, index_name, current_time)
 
-        if not result.total:
+        if not result or result[0] is None:
             return None, None
 
-        job = result.docs[0]
-        p = r.pipeline()
-        # fmt: off
-        payload, *_ = await \
-            p.get(job.id + ".payload") \
-            .json().set(job.id, "$.status", "in_progress") \
-            .json().set(job.id, "$.grab_ts", time()) \
-            .execute(raise_on_error=False)
-        # fmt: on
+        job_key = result[0].decode() if isinstance(result[0], bytes) else result[0]
+        payload = await r.get(job_key + '.payload')  # Retrieve the payload separately as bytes
+        job_id = job_key[len(index_name) + 1:]
 
-        job_id = job.id[len(index_name) + 1 :]
         return job_id, payload
 
     @staticmethod
