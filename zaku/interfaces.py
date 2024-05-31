@@ -213,7 +213,7 @@ class Job(SimpleNamespace):
         if payload:
             p.set(entry_key + ".payload", payload)
         p.json().set(entry_key, ".", vars(job))
-        return p.execute(raise_an_error=False)
+        return p.execute(raise_on_error=False)
 
     @staticmethod
     async def count_files(r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"], queue, *, prefix) -> int:
@@ -249,7 +249,7 @@ class Job(SimpleNamespace):
             p.get(job.id + ".payload") \
             .json().set(job.id, "$.status", "in_progress") \
             .json().set(job.id, "$.grab_ts", time()) \
-            .execute(raise_an_error=False)
+            .execute(raise_on_error=False)
         # fmt: on
 
         job_id = job.id[len(index_name) + 1 :]
@@ -337,13 +337,13 @@ class Job(SimpleNamespace):
             async for key in r.scan_iter(entry_name):
                 p = p.unlink(key)
                 count += 1
-            await p.execute(raise_an_error=False)
+            await p.execute(raise_on_error=False)
             return count
 
         # fmt: off
         response = p.unlink(entry_name) \
                     .unlink(entry_name + ".payload") \
-                    .execute(raise_an_error=False)
+                    .execute(raise_on_error=False)
         # fmt: on
         return await response
 
@@ -355,7 +355,7 @@ class Job(SimpleNamespace):
         p = p.json().set(entry_name, "$.status", "created")
         p = p.json().delete(entry_name, "$.grab_ts")
 
-        return p.execute(raise_an_error=False)
+        return p.execute(raise_on_error=False)
 
     @staticmethod
     async def unstale_tasks(r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"], queue, *, prefix, ttl=None):
@@ -376,4 +376,4 @@ class Job(SimpleNamespace):
             p = p.json().set(doc.id, "$.status", "created")
             p = p.json().delete(doc.id, "$.grab_ts")
 
-        return await p.execute(raise_an_error=False)
+        return await p.execute(raise_on_error=False)
