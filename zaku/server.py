@@ -10,9 +10,10 @@ from zaku.interfaces import Job
 class Redis(ParamsProto, prefix="redis", cli_parse=False):
     """Redis Configuration for the TaskServer class.
 
-    Setting keepalive: ConnectionError is due to timeout. See below for more infomation.
-
-    https://devcenter.heroku.com/articles/ah-redis-stackhero#:~:text=The%20error%20%E2%80%9Credis.,and%20the%20connection%20closes%20automatically
+    We support both direct connection to a single redis server,
+        and a high availability setup using Redis Sentinel.
+        The latter require setting up a replica set
+        and a group of sentinels.
 
     Single Redis Server Usage
     =========================
@@ -50,6 +51,13 @@ class Redis(ParamsProto, prefix="redis", cli_parse=False):
         --redis.sentinel_hosts     :str 'localhost'
         --redis.sentinel_password  :any None
         --redis.sentinel_db        :any 0
+
+    Common Errors:
+    ==============
+
+    Setting keepalive: ConnectionError is due to timeout. See below for more infomation.
+
+    https://devcenter.heroku.com/articles/ah-redis-stackhero#:~:text=The%20error%20%E2%80%9Credis.,and%20the%20connection%20closes%20automatically
     """
 
     host: str = Proto("localhost", env="REDIS_HOST")
