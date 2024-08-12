@@ -11,41 +11,35 @@ Install zaku --- the latest version is `{VERSION}` on [pypi](https://pypi.org/pr
 ```python
 pip install -U 'zaku[all]=={VERSION}'
 ```
+### Learning Usage Patterns by Running the Tests (specs)
 
-**Setting Up Zaku Server**
+Running tests is the best way to learn how to use a library. To run the tests in the [./specs](./specs) folder, first download and setup `redis-stack-server`. Then start a zaku task queue server at local port `9000`.
 
-First, download redis-stack-server. On macOS, you can do so by running
+1. install zaku and look at the options:
+    ```shell
+    pip install -U 'zaku[all]=={VERSION}'
+    zaku -h
+    ```
+2. install and run the `redis-stack-server`:
+    ```shell
+    brew install redis-stack-server
+    redis-stack-server
+    ```
+3. run the zaku task queue at port `9000`:
+    ```shell
+    zaku --port 9000 --verbose
+    ```
 
-```shell
-brew install redis-stack-server
-```
-then to launch the redis server, run
-
-```shell
-redis-stack-server
-```
-
-Now you are ready to run the zaku server.
-
-The server script is installed as the command `zaku`. First, take a look at its options by running
-
-```shell
-zaku -h
-```
-
-This should show you the documents on all of the arguments. Now, to setup a zaku task queue server, run the following: This enables access from other than localhost.
-
-````shell
-zaku --host 0.0.0.0 --port 9000
-````
-
-**Running the tests**
-
-Now with the zaku server running, you can start by running
+Now you can run the tests by running
 
 ```shell
 make test
 ```
+
+In pycharm, you should see the following:
+<p align="center">
+<img src="docs/_static/figure_spec.png" width="600">
+</p>
 
 ### Example Usage
 
@@ -114,26 +108,7 @@ To build the documentations, run
 make docs
 ```
 
-### Running the tests (specs)
+### License
 
-To run the tests in the spec folder, first start a zaku task queue server at local port `9000`, with a redis-stack-server in the backing.
-
-1. run the `redis-stack-server`:
-    ```shell
-    redis-stack-server
-    ```
-2. run the zaku task queue at port `9000`:
-    ```shell
-    zaku --port 9000 --verbose
-    ```
-
-Now you can run the tests by running
-
-```shell
-pytest
+Built with :heart: by [@episodeyang](https://x.com/episodeyang). Distributed under the MIT license. See `LICENSE` for more information.
 ```
-
-In pycharm, you should see the following:
-<p align="center">
-<img src="docs/_static/figure_spec.png" width="600">
-</p>
