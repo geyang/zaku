@@ -14,6 +14,19 @@ pip install -U 'zaku[all]=={VERSION}'
 
 **Setting Up Zaku Server**
 
+First, download redis-stack-server. On macOS, you can do so by running
+
+```shell
+brew install redis-stack-server
+```
+then to launch the redis server, run
+
+```shell
+redis-stack-server
+```
+
+Now you are ready to run the zaku server.
+
 The server script is installed as the command `zaku`. First, take a look at its options by running
 
 ```shell
@@ -25,6 +38,16 @@ This should show you the documents on all of the arguments. Now, to setup a zaku
 ````shell
 zaku --host 0.0.0.0 --port 9000
 ````
+
+**Running the tests**
+
+Now with the zaku server running, you can start by running
+
+```shell
+make test
+```
+
+### Example Usage
 
 **Adding Jobs**:
 
