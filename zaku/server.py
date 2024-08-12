@@ -14,6 +14,8 @@ class Redis(ParamsProto, prefix="redis", cli_parse=False):
 
     https://devcenter.heroku.com/articles/ah-redis-stackhero#:~:text=The%20error%20%E2%80%9Credis.,and%20the%20connection%20closes%20automatically
 
+    Single Redis Server Usage::
+
     .. code-block:: shell
 
         # Put this into an .env file
@@ -28,6 +30,24 @@ class Redis(ParamsProto, prefix="redis", cli_parse=False):
         --redis.port      :int 6379
         --redis.password  :any None
         --redis.db        :any 0
+
+    Sentinel Usage (High availability setup)::
+
+    .. code-block:: shell
+
+        # Put this into an .env file
+        SENTINEL_HOSTs=host1:port1,host2:port2  # <=== Notice it is plural.
+                                                #   This is a comma separated list of hosts.
+        SENTINEL_PASSWORD=xxxxxxxxxxxxxxxxxxx.  # <=== This is the password for the sentinels.
+
+        sentinel_cluster_name=primary           # <=== This is the name of the redis cluster.
+        SENTINEL_DB=0                           # <=== This is the logical database.
+
+    CLI Options::
+
+        --redis.sentinel_hosts     :str 'localhost'
+        --redis.sentinel_password  :any None
+        --redis.sentinel_db        :any 0
     """
 
     host: str = Proto("localhost", env="REDIS_HOST")
