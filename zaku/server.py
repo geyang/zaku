@@ -14,7 +14,8 @@ class Redis(ParamsProto, prefix="redis", cli_parse=False):
 
     https://devcenter.heroku.com/articles/ah-redis-stackhero#:~:text=The%20error%20%E2%80%9Credis.,and%20the%20connection%20closes%20automatically
 
-    Single Redis Server Usage::
+    Single Redis Server Usage
+    =========================
 
     .. code-block:: shell
 
@@ -31,7 +32,8 @@ class Redis(ParamsProto, prefix="redis", cli_parse=False):
         --redis.password  :any None
         --redis.db        :any 0
 
-    Sentinel Usage (High availability setup)::
+    Sentinel Usage (High availability setup)
+    ========================================
 
     .. code-block:: shell
 
