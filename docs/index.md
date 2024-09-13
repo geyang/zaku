@@ -52,7 +52,7 @@ To do so, first download and setup `redis-stack-server`. Then start a zaku task 
 
 1. install zaku and look at the options:
    ```shell
-   pip install -U 'zaku[all]=={VERSION}'
+   pip install -U 'zaku[all,dev,examples]=={VERSION}'
    zaku -h
    ```
 2. install and run the `redis-stack-server`:

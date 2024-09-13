@@ -30,7 +30,7 @@ all = [
     "killport",
     "redis",
 ]
-example = [
+examples = [
     "aiohttp",
     "aiohttp-cors",
     "cmx",
