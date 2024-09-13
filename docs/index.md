@@ -2,7 +2,11 @@
 
 <link rel="stylesheet" href="_static/title_resize.css">
 
-Zaku is a light-weight task queue backed by redis for machine learning workloads.
+Zaku is a light-weight task queue backed by redis for machine learning workloads. Zaku is built by researchers at MIT in fields including robotics, computer vision, and computer graphics.
+
+- light-weight and performant
+- scalable and versatile.
+- Open source, licensed under MIT
 
 **To Install:** 
 
@@ -40,17 +44,38 @@ A task after being created and inserted into the queue, will be taken by a worke
 In the event of you forgetting to mark the task as done or reset, the task will be marked as reset after a certain amount of time. This is to prevent the task from being stuck in the queue forever. This time is called `ttl` or time-to-live.
 ```
 
-Zaku is built by researchers at MIT in fields including robotics, computer vision, and computer graphics.
+### <code style="font-size: 1.3em; background-clip: text; color: transparent; background-image: linear-gradient(to right, rgb(255 139 128), rgb(208 6 27), rgb(97 12 0));">zaku</code> in Depth: Running the Tests
 
-- light-weight and performant
-- scalable and versatile.
-- Open source, licensed under MIT
+The best way to learn how to use <code style="font-size: 1.3em; background-clip: text; color: transparent; background-image: linear-gradient(to right, rgb(255 139 128), rgb(208 6 27), rgb(97 12 0));">zaku</code> is by running the tests in the [./specs](./specs) folder.
 
-To get a quick overview of what you can do with  <code style="font-size: 1.3em; background-clip: text; color: transparent; background-image: linear-gradient(to right, rgb(255 139 128), rgb(208 6 27), rgb(97 12 0));">zaku</code>, check out the following:
+To do so, first download and setup `redis-stack-server`. Then start a zaku task queue server at local port `9000`.
 
-1. take a look at the basic tutorial or the tutorial for robotics:
-  - [Zaku Basics](tutorials/server_setup)
-2. or try to take a look at the example gallery [here](examples/01_simple_queue)
+1. install zaku and look at the options:
+   ```shell
+   pip install -U 'zaku[all]=={VERSION}'
+   zaku -h
+   ```
+2. install and run the `redis-stack-server`:
+   ```shell
+   brew install redis-stack-server
+   redis-stack-server
+   ```
+3. run the zaku task queue at port `9000`:
+   ```shell
+   zaku --port 9000 --verbose
+   ```
+
+Now you can run the tests by running
+
+```shell
+make test
+```
+
+In pycharm, you should see the following:
+
+<p align="center">
+<img src="_static/figure_spec.png" width="600">
+</p>
 
 For a comprehensive documentation on the API, please refer to
 the [API documentation on Components | zaku](https://docs.zaku.ai/en/latest/api/zaku.html).

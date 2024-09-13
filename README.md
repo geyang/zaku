@@ -96,7 +96,7 @@ with queue.pop() as job:
 
 ## Developing Zaku (Optional)
 
-The best way to understand `zaku` is by running through the test suite inside the [./specs](specs) folder. First, git clone this repo, and install it in editable mode plus dependencies relevant for building the documentations:
+First, git clone this repo, and install it in editable mode plus dependencies relevant for building the documentations:
 
 ```shell
 git clone https://github.com/geyang/zaku.git
@@ -104,11 +104,9 @@ cd zaku
 pip install -e '.[dev]'
 ```
 
-
-
 ### Improving Documentation
 
-We use `sphinx` to generate the documentation. To get started, make sure you install the dev dependencies. This should already be included if you installed zaku via the `zaku[all]` flag. Take a look at [./docs/requirements.txt](docs/requirements.txt) to see what packages are required for development.
+We use `sphinx` to generate the documentation. To get started, make sure you install the dev dependencies. This should already be included if you installed zaku via the `zaku[dev]` flag. Take a look at [./docs/requirements.txt](docs/requirements.txt) to see what packages are required for development.
 
 When editing the documentation, you can use a preview server that automatically refreshes the browser upon changes in source. Simply do
 

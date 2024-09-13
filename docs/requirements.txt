@@ -9,6 +9,7 @@ params-proto
 redis
 
 sphinx==7.1.2
+sphinx-autobuild
 furo
 myst_parser
 sphinx_copybutton
