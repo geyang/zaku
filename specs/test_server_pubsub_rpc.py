@@ -4,7 +4,7 @@ import pytest
 
 from zaku import TaskQ
 
-task_queue = TaskQ(name="ZAKU_TEST:debug-queue", uri="http://localhost:9000")
+task_queue = TaskQ(name="ZAKU_TEST:debug-queue")
 task_queue.init_queue()
 
 
@@ -65,7 +65,7 @@ def test_pubsub_streaming():
 def worker_process(queue_name):
     from time import sleep
 
-    queue = TaskQ(name=queue_name, uri="http://localhost:9000")
+    queue = TaskQ(name=queue_name)
 
     job = None
     while not job:
@@ -93,7 +93,7 @@ def test_rpc():
     from multiprocessing import Process
 
     queue_name = "ZAKU_TEST:debug-rpc-queue"
-    rpc_queue = TaskQ(name=queue_name, uri="http://localhost:9000")
+    rpc_queue = TaskQ(name=queue_name)
     # this is important, otherwise the worker will get suck with
     # an old message.
     rpc_queue.clear_queue()
@@ -109,7 +109,7 @@ def test_rpc():
 def streamer_process(queue_name):
     from time import sleep
 
-    queue = TaskQ(name=queue_name, uri="http://localhost:9000")
+    queue = TaskQ(name=queue_name)
 
     job = None
     while not job:
@@ -136,7 +136,7 @@ def test_rpc_streaming():
     from multiprocessing import Process
 
     queue_name = "ZAKU_TEST:debug-rpc-queue"
-    rpc_queue = TaskQ(name=queue_name, uri="http://localhost:9000")
+    rpc_queue = TaskQ(name=queue_name)
     rpc_queue.init_queue()
 
     p = Process(target=streamer_process, args=(queue_name,))

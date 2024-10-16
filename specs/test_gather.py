@@ -2,14 +2,14 @@ import pytest
 
 from zaku import TaskQ
 
-task_queue = TaskQ(name="ZAKU_TEST:debug-queue", uri="http://localhost:9000")
+task_queue = TaskQ(name="ZAKU_TEST:debug-queue")
 task_queue.init_queue()
 
 
 def worker_process(queue_name):
     from time import sleep
 
-    queue = TaskQ(name=queue_name, uri="http://localhost:9000")
+    queue = TaskQ(name=queue_name)
 
     job = None
 
@@ -43,7 +43,7 @@ def test_gather():
     from multiprocessing import Process
 
     queue_name = "ZAKU_TEST:debug-gather-queue"
-    job_queue = TaskQ(name=queue_name, uri="http://localhost:9000")
+    job_queue = TaskQ(name=queue_name)
     # this is important, otherwise the worker will get suck with
     # an old message.
     job_queue.clear_queue()
@@ -82,7 +82,7 @@ def test_gather_imperative():
     print("setting up queue")
 
     queue_name = "ZAKU_TEST:debug-gather-queue"
-    job_queue = TaskQ(name=queue_name, uri="http://localhost:9000")
+    job_queue = TaskQ(name=queue_name)
     # this is important, otherwise the worker will get suck with
     # # an old message.
     job_queue.clear_queue()
