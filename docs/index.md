@@ -1,5 +1,7 @@
 <h1 class="full-width" style="font-size: 49px"><code style="font-family: sans-serif; background-clip: text; color: transparent; background-image: linear-gradient(to right, rgb(255 139 128), rgb(208 6 27), rgb(97 12 0));">Zaku</code> Task Queue<span style="font-size: 0.3em; margin-left: 0.5em; margin-right:-0.4em;">｣</span></h1>
 
+<p style="padding: 0 20px">A fast, scalable task queue for machine learning workloads</p>
+
 <link rel="stylesheet" href="_static/title_resize.css">
 
 Zaku is a light-weight task queue backed by redis for machine learning workloads. Zaku is built by researchers at MIT in fields including robotics, computer vision, and computer graphics.
@@ -79,6 +81,21 @@ In pycharm, you should see the following:
 
 For a comprehensive documentation on the API, please refer to
 the [API documentation on Components | zaku](https://docs.zaku.ai/en/latest/api/zaku.html).
+
+
+### To Cite
+
+You can use the following BibTex entry to cite zaku:
+
+```bibtex
+@online{yang@zaku,
+  author = {Ge Yang},
+  title = {Zaku Task Queue: A Fast, Scalable Task Queue for Machine Learning Workloads},
+  year = {2024},
+  url= {https://zaku.readthedocs.io/en/latest/},
+  note = {Light-weight, scalable task queue for machine learning workloads. Accessed: 2024-10-15}
+}
+```
 
 <!-- prettier-ignore-start -->
 
