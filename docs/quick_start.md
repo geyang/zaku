@@ -2,9 +2,9 @@
 
 To get a quick overview of what you can do with `zaku`, check out the following:
 
-- take a look at the basic tutorial or the tutorial for robotics:
-  - [Server Setup](tutorials/server_setup.md)
-  - or try to take a look at the example gallery [here](examples/01_simple_queue)
+- take a look at the basic tutorial or the tutorial for robotics: [Zaku Basics](tutorials/basics)
+- or try to take a look at the example gallery [here](examples/01_simple_queue)
+- full setup guide for a redis cluster: [tutorials/redis_setup_guide.md](tutorials/redis_setup_guide.md)
 
 Install zaku --- the latest version is `{VERSION}` on [pypi](https://pypi.org/project/zaku/{VERSION}/).
 

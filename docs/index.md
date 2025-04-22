@@ -115,6 +115,7 @@ You can use the following BibTex entry to cite zaku:
    :hidden:
    
    tutorials/server_setup.md
+   tutorials/redis_setup_guide.md <Redis Guide (Ubuntu)>
    
 .. toctree::
    :maxdepth: 3
