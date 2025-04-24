@@ -74,10 +74,6 @@ include = ["zaku*"]
 [tool.setuptools.package-data]
 "*" = ["*.json"]
 
-# black
-[tool.black]
-line-length = 120
-
 # pylint
 [tool.pylint.messages_control]
 max-line-length = 120
