@@ -3,7 +3,8 @@
 
 .DS_Store
 .env
-
+.xml
+.iml
 __pycache__
 *.egg-info
 *.eggs

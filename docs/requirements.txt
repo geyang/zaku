@@ -7,7 +7,7 @@ params-proto
 
 # This is needed for the API doc
 redis
-
+python-dotenv==1.1.1
 sphinx==7.1.2
 sphinx-autobuild
 furo

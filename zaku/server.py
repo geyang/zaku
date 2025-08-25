@@ -2,11 +2,12 @@ import msgpack
 import redis
 from aiohttp import web
 from params_proto import Proto, ParamsProto, Flag
-
+from dotenv import load_dotenv
 from zaku.base import Server
 from zaku.interfaces import Job
 
-
+load_dotenv()
+#redis配置类
 class Redis(ParamsProto, prefix="redis", cli_parse=False):
     """Redis Configuration for the TaskServer class.
 
