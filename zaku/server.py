@@ -3,8 +3,8 @@ import redis
 from aiohttp import web
 from params_proto import Proto, ParamsProto, Flag
 from dotenv import load_dotenv
-from zaku.base import Server
-from zaku.interfaces import Job
+from base import Server
+from interfaces import Job
 
 load_dotenv()
 
@@ -174,11 +174,11 @@ class MongoDB(ParamsProto, prefix="mongo", cli_parse=False):
         --mongo.auth_source    :str 'admin'
     """
 
-    host: str = Proto("47.108.52.192", env="MONGO_HOST")
+    host: str = Proto("localhost", env="MONGO_HOST")
     port: int = Proto(27017, env="MONGO_PORT")
     username: str = Proto(env="root")
-    password: str = Proto(env="123456")
-    database: str = Proto("zaku_hybrid", env="MONGO_DATABASE")
+    password: str = Proto(env="root")
+    database: str = Proto("zaku", env="MONGO_DATABASE")
     auth_source: str = Proto("admin", env="MONGO_AUTH_SOURCE")
 
     # For replica set connections
@@ -258,7 +258,7 @@ class TaskServer(ParamsProto, Server):
 
     # Server Parameters
     host: str = Proto(
-        "localhost",
+        "0.0.0.0",
         help="set to 0.0.0.0 to enable remote (not localhost) connections.",
     )
     port: int = 9000
@@ -440,7 +440,7 @@ class TaskServer(ParamsProto, Server):
     async def initialize_mongodb(self):
         """Initialize MongoDB connection"""
         try:
-            from zaku.mongo_helpers import MongoManager
+            from mongo_helpers import MongoManager
             await MongoManager.initialize(
                 self.mongo_wrapper.connection_string,
                 self.mongo_wrapper.database

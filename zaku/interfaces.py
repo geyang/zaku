@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 def get_mongo_client():
     """Get MongoDB client from the manager"""
     try:
-        from zaku.mongo_helpers import MongoManager
+        from mongo_helpers import MongoManager
         return MongoManager.get_client()
     except Exception as e:
         raise RuntimeError(f"Failed to get MongoDB client: {e}. Make sure MongoDB is initialized.")
