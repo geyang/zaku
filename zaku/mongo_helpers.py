@@ -117,6 +117,24 @@ class RobustMongo:
         
         return 0
     
+    async def clear_collection(self, collection_name: str) -> bool:
+        """Clear entire collection with retry logic"""
+        collection = self.get_collection(collection_name)
+        
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                result = await collection.delete_many({})
+                logger.info(f"Cleared collection '{collection_name}': {result.deleted_count} documents removed")
+                return True
+            except PyMongoError as e:
+                logger.warning(f"Failed to clear collection '{collection_name}' (attempt {attempt + 1}): {e}")
+                if attempt == max_retries - 1:
+                    raise MongoConnectionError(f"Failed to clear collection after {max_retries} attempts: {e}")
+                await asyncio.sleep(0.1 * (2 ** attempt))  # Exponential backoff
+        
+        return False
+    
     async def health_check(self) -> bool:
         """Check MongoDB connection health"""
         try:

@@ -122,6 +122,7 @@ class Redis(ParamsProto, prefix="redis", cli_parse=False):
                 socket_connect_timeout=self.socket_connect_timeout,
                 retry_on_timeout=self.retry_on_timeout,
                 socket_keepalive=self.socket_keepalive,
+                ssl=True
             )
 
 
@@ -260,6 +261,7 @@ class TaskServer(ParamsProto, Server):
     host: str = Proto(
         "0.0.0.0",
         help="set to 0.0.0.0 to enable remote (not localhost) connections.",
+        env="ZAKU_HOST"
     )
     port: int = 9000
     cors: str = "https://vuer.ai,https://dash.ml,http://localhost:8000,http://127.0.0.1:8000,*"

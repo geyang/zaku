@@ -51,8 +51,8 @@ async def handle_file_request(request, root, filename=None):
 class Server:
     """Base TCP server"""
 
-    host: str = "localhost"
-    port: int = 8012
+    host: str = "0.0.0.0"
+    port: int = 9000
     cors: str = "*"
     "Enable CORS"
 

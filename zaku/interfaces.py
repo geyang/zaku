@@ -432,44 +432,30 @@ class Job(SimpleNamespace):
 
     @staticmethod
     async def remove(r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"], job_id, queue, *, prefix):
-        entry_name = f"{prefix}:{queue}:{job_id}"
-
-        p = r.pipeline()
-
         if job_id == "*":
-            count = 0
-            async for key in r.scan_iter(entry_name):
-                p = p.unlink(key)
-                count += 1
-            await p.execute(raise_on_error=False)
-            
-            # Also remove payloads from MongoDB for wildcard deletion
             try:
+                entry_name = f"{prefix}:{queue}:{job_id}"
+                count = 0
+                async for key in r.scan_iter(entry_name):
+                    await r.unlink(key)
+                    count += 1
                 mongo_client = get_mongo_client()
                 collection_name = f"{prefix}_{queue}"
-                # For wildcard deletion, we need to get all job IDs first
-                # This is a limitation - we can't easily get all job IDs from Redis search
-                # For now, we'll just log a warning
-                import logging
-                logging.warning("Wildcard deletion of payloads from MongoDB is not fully supported")
+                await mongo_client.clear_collection(collection_name)
+                
+                return True
             except Exception as e:
                 import logging
-                logging.warning(f"Failed to remove payloads from MongoDB: {e}")
-            
-            return count
+                logging.warning(f"Wildcard deletion failed: {e}")
+                return False
 
-        # Remove job metadata from Redis
-        p = p.unlink(entry_name)
-        await p.execute(raise_on_error=False)
-        
-        # Remove payload from MongoDB
+        entry_name = f"{prefix}:{queue}:{job_id}"
+        await r.unlink(entry_name)
         try:
             mongo_client = get_mongo_client()
             collection_name = f"{prefix}_{queue}"
             await mongo_client.delete_payload(collection_name, job_id)
         except Exception as e:
-            # If MongoDB fails, we should still remove the job metadata
-            # but log the error for debugging
             import logging
             logging.warning(f"Failed to remove payload from MongoDB for job {job_id}: {e}")
         
