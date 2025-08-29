@@ -19,6 +19,8 @@ dependencies = [
     "msgpack",
     "numpy>=1.21", # because we require numpy.typing.NDArray
     "websockets",
+    "motor>=3.0.0",  # Async MongoDB driver
+    "pymongo>=4.0.0",  # MongoDB driver
 ]
 
 [project.optional-dependencies]
@@ -29,6 +31,8 @@ all = [
     "aiohttp-cors",
     "killport",
     "redis",
+    "motor>=3.0.0",
+    "pymongo>=4.0.0",
 ]
 examples = [
     "aiohttp",
@@ -38,9 +42,11 @@ examples = [
     "killport",
     "ml_logger",
     "opencv-python",
-    "open3d>=0.15.0,<0.16.0",
+    "open3d>=0.17.0",
     "redis",
     "trimesh",
+    "motor>=3.0.0",
+    "pymongo>=4.0.0",
 ]
 dev = [
     "restructuredtext-lint",
@@ -50,6 +56,8 @@ dev = [
     "black==22.3.0",
     "killport",
     "redis",
+    "motor>=3.0.0",
+    "pymongo>=4.0.0",
     "pylint==2.13.4",
     "pytest==7.1.2",
     "sphinx==7.1.2",

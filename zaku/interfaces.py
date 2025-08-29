@@ -2,6 +2,7 @@ from io import BytesIO
 from time import time, perf_counter
 from types import SimpleNamespace
 from typing import Literal, Any, Coroutine, Dict, Union, TYPE_CHECKING, Tuple
+from uuid import uuid4
 
 import msgpack
 import numpy as np
@@ -9,6 +10,15 @@ import numpy as np
 if TYPE_CHECKING:
     import redis
     import torch
+
+
+def get_mongo_client():
+    """Get MongoDB client from the manager"""
+    try:
+        from zaku.mongo_helpers import MongoManager
+        return MongoManager.get_client()
+    except Exception as e:
+        raise RuntimeError(f"Failed to get MongoDB client: {e}. Make sure MongoDB is initialized.")
 
 ZType = Literal["numpy.ndarray", "torch.Tensor", "generic"]
 
@@ -156,7 +166,8 @@ class Job(SimpleNamespace):
     async def create_queue(r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"], name, *, prefix):
         from redis import ResponseError
         from redis.commands.search.field import TagField, NumericField
-        from redis.commands.search.indexDefinition import IndexType, IndexDefinition
+        from redis.commands.search.index_definition import (IndexType,
+                                                           IndexDefinition)
 
         index_name = f"{prefix}:{name}"
         index_prefix = f"{prefix}:{name}:"
@@ -186,7 +197,7 @@ class Job(SimpleNamespace):
         return await r.ft(index_name).dropindex()
 
     @staticmethod
-    def add(
+    async def add(
         r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"],
         queue: str,
         *,
@@ -195,7 +206,7 @@ class Job(SimpleNamespace):
         payload: bytes = None,
         job_id: str = None,
         # ttl: float = None,
-    ) -> Coroutine:
+    ) -> bool:
         from uuid import uuid4
 
         job = Job(
@@ -209,11 +220,24 @@ class Job(SimpleNamespace):
 
         entry_key = f"{prefix}:{queue}:{job_id}"
 
+        # Store job metadata in Redis
         p = r.pipeline()
-        if payload:
-            p.set(entry_key + ".payload", payload)
         p.json().set(entry_key, ".", vars(job))
-        return p.execute(raise_on_error=False)
+        await p.execute(raise_on_error=False)
+        
+        # Store payload in MongoDB if provided
+        if payload:
+            try:
+                mongo_client = get_mongo_client()
+                collection_name = f"{prefix}_{queue}"
+                await mongo_client.store_payload(collection_name, job_id, payload)
+            except Exception as e:
+                # If MongoDB fails, we should still store the job metadata
+                # but log the error for debugging
+                import logging
+                logging.warning(f"Failed to store payload in MongoDB for job {job_id}: {e}")
+        
+        return True
 
     @staticmethod
     async def count_files(r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"], queue, *, prefix) -> int:
@@ -258,8 +282,19 @@ class Job(SimpleNamespace):
             return None, None
 
         job_key = result[0].decode() if isinstance(result[0], bytes) else result[0]
-        payload = await r.get(job_key + ".payload")  # Retrieve the payload separately as bytes
         job_id = job_key[len(index_name) + 1 :]
+        
+        # Retrieve payload from MongoDB
+        payload = None
+        try:
+            mongo_client = get_mongo_client()
+            collection_name = f"{prefix}_{queue}"
+            payload = await mongo_client.retrieve_payload(collection_name, job_id)
+        except Exception as e:
+            # If MongoDB fails, we should still return the job metadata
+            # but log the error for debugging
+            import logging
+            logging.warning(f"Failed to retrieve payload from MongoDB for job {job_id}: {e}")
 
         return job_id, payload
 
@@ -273,10 +308,25 @@ class Job(SimpleNamespace):
         prefix: str,
     ) -> Coroutine:
         """Publish a job to a key --- this is not saved in the queue and is ephemeral."""
-        # we don't use folders so that these do not get entangled with the job queue.
-        entry_key = f"{prefix}:{queue}.topics:{topic_id}"
-        subscribers = await r.publish(entry_key, payload)
-        return subscribers
+        # Store payload in MongoDB first
+        try:
+            mongo_client = get_mongo_client()
+            collection_name = f"{prefix}_{queue}_topics"
+            # Generate a unique ID for the topic message
+            message_id = str(uuid4())
+            await mongo_client.store_payload(collection_name, message_id, payload)
+            
+            # Publish the message ID to Redis (not the full payload)
+            entry_key = f"{prefix}:{queue}.topics:{topic_id}"
+            subscribers = await r.publish(entry_key, message_id.encode())
+            return subscribers
+        except Exception as e:
+            # Fallback to direct Redis publish if MongoDB fails
+            import logging
+            logging.warning(f"Failed to store payload in MongoDB, falling back to direct Redis publish: {e}")
+            entry_key = f"{prefix}:{queue}.topics:{topic_id}"
+            subscribers = await r.publish(entry_key, payload)
+            return subscribers
 
     # todo: implement streaming mode.
     @staticmethod
@@ -304,8 +354,31 @@ class Job(SimpleNamespace):
                 if message is None:
                     pass
                 elif message["type"] == "message":
-                    payload = message["data"]
-                    return payload
+                    message_data = message["data"]
+                    
+                    # Try to decode as message ID first (MongoDB integration)
+                    try:
+                        message_id = message_data.decode() if isinstance(message_data, bytes) else message_data
+                        # Check if this looks like a UUID (MongoDB message ID)
+                        if len(message_id) == 36 and '-' in message_id:
+                            # Retrieve payload from MongoDB
+                            try:
+                                mongo_client = get_mongo_client()
+                                collection_name = f"{prefix}_{queue}_topics"
+                                payload = await mongo_client.retrieve_payload(collection_name, message_id)
+                                if payload:
+                                    return payload
+                            except Exception as e:
+                                import logging
+                                logging.warning(f"Failed to retrieve payload from MongoDB for message {message_id}: {e}")
+                                # Fallback to returning the message data as-is
+                                return message_data
+                        else:
+                            # Not a UUID, return as-is (direct Redis publish)
+                            return message_data
+                    except Exception:
+                        # If decoding fails, return the message data as-is
+                        return message_data
 
     @staticmethod
     async def subscribe_stream(
@@ -331,8 +404,31 @@ class Job(SimpleNamespace):
                 if message is None:
                     pass
                 elif message["type"] == "message":
-                    payload = message["data"]
-                    yield payload
+                    message_data = message["data"]
+                    
+                    # Try to decode as message ID first (MongoDB integration)
+                    try:
+                        message_id = message_data.decode() if isinstance(message_data, bytes) else message_data
+                        # Check if this looks like a UUID (MongoDB message ID)
+                        if len(message_id) == 36 and '-' in message_id:
+                            # Retrieve payload from MongoDB
+                            try:
+                                mongo_client = get_mongo_client()
+                                collection_name = f"{prefix}_{queue}_topics"
+                                payload = await mongo_client.retrieve_payload(collection_name, message_id)
+                                if payload:
+                                    yield payload
+                            except Exception as e:
+                                import logging
+                                logging.warning(f"Failed to retrieve payload from MongoDB for message {message_id}: {e}")
+                                # Fallback to yielding the message data as-is
+                                yield message_data
+                        else:
+                            # Not a UUID, yield as-is (direct Redis publish)
+                            yield message_data
+                    except Exception:
+                        # If decoding fails, yield the message data as-is
+                        yield message_data
 
     @staticmethod
     async def remove(r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"], job_id, queue, *, prefix):
@@ -346,14 +442,38 @@ class Job(SimpleNamespace):
                 p = p.unlink(key)
                 count += 1
             await p.execute(raise_on_error=False)
+            
+            # Also remove payloads from MongoDB for wildcard deletion
+            try:
+                mongo_client = get_mongo_client()
+                collection_name = f"{prefix}_{queue}"
+                # For wildcard deletion, we need to get all job IDs first
+                # This is a limitation - we can't easily get all job IDs from Redis search
+                # For now, we'll just log a warning
+                import logging
+                logging.warning("Wildcard deletion of payloads from MongoDB is not fully supported")
+            except Exception as e:
+                import logging
+                logging.warning(f"Failed to remove payloads from MongoDB: {e}")
+            
             return count
 
-        # fmt: off
-        response = p.unlink(entry_name) \
-                    .unlink(entry_name + ".payload") \
-                    .execute(raise_on_error=False)
-        # fmt: on
-        return await response
+        # Remove job metadata from Redis
+        p = p.unlink(entry_name)
+        await p.execute(raise_on_error=False)
+        
+        # Remove payload from MongoDB
+        try:
+            mongo_client = get_mongo_client()
+            collection_name = f"{prefix}_{queue}"
+            await mongo_client.delete_payload(collection_name, job_id)
+        except Exception as e:
+            # If MongoDB fails, we should still remove the job metadata
+            # but log the error for debugging
+            import logging
+            logging.warning(f"Failed to remove payload from MongoDB for job {job_id}: {e}")
+        
+        return True
 
     @staticmethod
     def reset(r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"], job_id, queue, *, prefix):

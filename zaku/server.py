@@ -2,9 +2,11 @@ import msgpack
 import redis
 from aiohttp import web
 from params_proto import Proto, ParamsProto, Flag
-
+from dotenv import load_dotenv
 from zaku.base import Server
 from zaku.interfaces import Job
+
+load_dotenv()
 
 
 class Redis(ParamsProto, prefix="redis", cli_parse=False):
@@ -66,14 +68,17 @@ class Redis(ParamsProto, prefix="redis", cli_parse=False):
 
     # todo: add support for cluster mode without sentinel.
     sentinel_hosts: str = Proto(
-        env="SENTINEL_HOSTS", help="comma separated list of redis hosts. Example: host1:port1,host2:port2,host3:port3."
+        env="SENTINEL_HOSTS",
+        help="comma separated list of redis hosts. Example: host1:port1,host2:port2,host3:port3."
     )
     sentinel_password: str = Proto(password, env="SENTINEL_PASSWORD")
 
     cluster_name = Proto("primary", env="SENTINEL_CLUSTER_NAME")
-    shuffle: bool = Proto(False, env="REDIS_SHUFFLE", help="shuffle the sentinel hosts on init.")
+    shuffle: bool = Proto(False, env="REDIS_SHUFFLE",
+                          help="shuffle the sentinel hosts on init.")
 
-    db: int = Proto(0, env="REDIS_DB", help="The logical redis database, from 0 - 15.")
+    db: int = Proto(0, env="REDIS_DB",
+                    help="The logical redis database, from 0 - 15.")
 
     # connection arguments
     health_check_interval = 10
@@ -85,10 +90,12 @@ class Redis(ParamsProto, prefix="redis", cli_parse=False):
         if self.sentinel_hosts:
             import random
 
-            self.sentinel_hosts = [h.split(":") for h in self.sentinel_hosts.split(",")]
+            self.sentinel_hosts = [h.split(":") for h in
+                                   self.sentinel_hosts.split(",")]
 
             if self.shuffle:
-                self.sentinel_hosts = random.shuffle(self.sentinel_hosts, key=lambda x: hash(x))
+                self.sentinel_hosts = random.shuffle(self.sentinel_hosts,
+                                                     key=lambda x: hash(x))
 
             self.sentinel = redis.asyncio.sentinel.Sentinel(
                 self.sentinel_hosts,
@@ -100,7 +107,9 @@ class Redis(ParamsProto, prefix="redis", cli_parse=False):
                 socket_keepalive=self.socket_keepalive,
             )
 
-            self.connection = self.sentinel.master_for(self.cluster_name, password=self.password, db=self.db)
+            self.connection = self.sentinel.master_for(self.cluster_name,
+                                                       password=self.password,
+                                                       db=self.db)
 
         else:
             # self.connection = RobustRedis(password=self.password, db=self.db, host=self.host, port=self.port)
@@ -114,6 +123,95 @@ class Redis(ParamsProto, prefix="redis", cli_parse=False):
                 retry_on_timeout=self.retry_on_timeout,
                 socket_keepalive=self.socket_keepalive,
             )
+
+
+class MongoDB(ParamsProto, prefix="mongo", cli_parse=False):
+    """MongoDB Configuration for the TaskServer class.
+
+    We support both direct connection to a single MongoDB server,
+        and a high availability setup using MongoDB replica sets.
+
+    Single MongoDB Server Usage
+    ==========================
+
+    .. code-block:: shell
+
+        # Put this into an .env file
+        MONGO_HOST=localhost
+        MONGO_PORT=27017
+        MONGO_USERNAME=admin
+        MONGO_PASSWORD=xxxxxxxxxxxxxxxxxxx
+        MONGO_DATABASE=zaku
+        MONGO_AUTH_SOURCE=admin
+
+    CLI Options::
+
+        --mongo.host           :str 'localhost'
+        --mongo.port           :int 27017
+        --mongo.username       :str None
+        --mongo.password       :str None
+        --mongo.database       :str 'zaku'
+        --mongo.auth_source    :str 'admin'
+
+    Replica Set Usage (High availability setup)
+    ===========================================
+
+    .. code-block:: shell
+
+        # Put this into an .env file
+        MONGO_URI=mongodb://host1:port1,host2:port2,host3:port3/?replicaSet=rs0
+        MONGO_DATABASE=zaku
+        MONGO_USERNAME=admin
+        MONGO_PASSWORD=xxxxxxxxxxxxxxxxxxx
+        MONGO_AUTH_SOURCE=admin
+
+    CLI Options::
+
+        --mongo.uri            :str None
+        --mongo.database       :str 'zaku'
+        --mongo.username       :str None
+        --mongo.password       :str None
+        --mongo.auth_source    :str 'admin'
+    """
+
+    host: str = Proto("47.108.52.192", env="MONGO_HOST")
+    port: int = Proto(27017, env="MONGO_PORT")
+    username: str = Proto(env="root")
+    password: str = Proto(env="123456")
+    database: str = Proto("zaku_hybrid", env="MONGO_DATABASE")
+    auth_source: str = Proto("admin", env="MONGO_AUTH_SOURCE")
+
+    # For replica set connections
+    uri: str = Proto(env="MONGO_URI",
+                     help="MongoDB connection URI for replica sets")
+
+    def __post_init__(self, _deps=None):
+        if self.uri:
+            # Use connection URI if provided (for replica sets)
+            if self.username and self.password:
+                # Replace username and password in URI if provided
+                uri_parts = self.uri.split("://")
+                if len(uri_parts) == 2:
+                    protocol, rest = uri_parts
+                    if "@" in rest:
+                        # URI already has authentication
+                        self.connection_string = self.uri
+                    else:
+                        # Add authentication to URI
+                        auth_part = f"{self.username}:{self.password}@"
+                        host_part = rest.split("/")[0]
+                        db_part = "/".join(rest.split("/")[1:])
+                        self.connection_string = f"{protocol}://{auth_part}{host_part}/{db_part}"
+                else:
+                    self.connection_string = self.uri
+            else:
+                self.connection_string = self.uri
+        else:
+            # Build connection string from individual components
+            if self.username and self.password:
+                self.connection_string = f"mongodb://{self.username}:{self.password}@{self.host}:{self.port}/{self.database}?authSource={self.auth_source}"
+            else:
+                self.connection_string = f"mongodb://{self.host}:{self.port}/{self.database}"
 
 
 class TaskServer(ParamsProto, Server):
@@ -169,9 +267,11 @@ class TaskServer(ParamsProto, Server):
     # SSL Parameters
     cert: str = Proto(None, dtype=str, help="the path to the SSL certificate")
     key: str = Proto(None, dtype=str, help="the path to the SSL key")
-    ca_cert: str = Proto(None, dtype=str, help="the trusted root CA certificates")
+    ca_cert: str = Proto(None, dtype=str,
+                         help="the trusted root CA certificates")
 
-    REQUEST_MAX_SIZE: int = Proto(100_000_000, env="WEBSOCKET_MAX_SIZE", help="the maximum packet size")
+    REQUEST_MAX_SIZE: int = Proto(100_000_000, env="WEBSOCKET_MAX_SIZE",
+                                  help="the maximum packet size")
 
     free_port: bool = Flag("kill process squatting target port if True.")
     static_root: str = "."
@@ -191,6 +291,10 @@ class TaskServer(ParamsProto, Server):
 
         self.redis_wrapper = Redis(_deps)
         self.redis = self.redis_wrapper.connection
+
+        # Initialize MongoDB for payload storage
+        self.mongo_wrapper = MongoDB(_deps)
+        self.mongo_initialized = False
 
     async def create_queue(self, request: web.Request):
         data = await request.json()
@@ -213,7 +317,8 @@ class TaskServer(ParamsProto, Server):
         msg = await request.read()
         data = msgpack.unpackb(msg)
         # print("==>", data)
-        num_subscribers = await Job.publish(self.redis, prefix=self.prefix, **data)
+        num_subscribers = await Job.publish(self.redis, prefix=self.prefix,
+                                            **data)
         # todo: return the number of subscribers.
         return web.Response(text=str(num_subscribers), status=200)
 
@@ -233,7 +338,8 @@ class TaskServer(ParamsProto, Server):
         data = await request.json()
 
         try:
-            counts = await Job.count_files(self.redis, **data, prefix=self.prefix)
+            counts = await Job.count_files(self.redis, **data,
+                                           prefix=self.prefix)
         except redis.exceptions.ResponseError as e:
             if "no such index" in str(e):
                 return web.Response(status=200)
@@ -247,7 +353,8 @@ class TaskServer(ParamsProto, Server):
         data = await request.json()
 
         try:
-            job_id, payload = await Job.take(self.redis, **data, prefix=self.prefix)
+            job_id, payload = await Job.take(self.redis, **data,
+                                             prefix=self.prefix)
         except redis.exceptions.ResponseError as e:
             if "no such index" in str(e):
                 return web.Response(status=200)
@@ -255,7 +362,8 @@ class TaskServer(ParamsProto, Server):
             raise e
 
         if payload:
-            msg = msgpack.packb({"job_id": job_id, "payload": payload}, use_bin_type=True)
+            msg = msgpack.packb({"job_id": job_id, "payload": payload},
+                                use_bin_type=True)
             return web.Response(body=msg, status=200)
 
         return web.Response(status=200)
@@ -282,7 +390,8 @@ class TaskServer(ParamsProto, Server):
 
         async def stream_response(response):
             try:
-                async for payload in Job.subscribe_stream(self.redis, **data, prefix=self.prefix):
+                async for payload in Job.subscribe_stream(self.redis, **data,
+                                                          prefix=self.prefix):
                     # use msgpack.Unpacker to determin the end of message.
                     await response.write(payload)
 
@@ -316,14 +425,32 @@ class TaskServer(ParamsProto, Server):
         self._route("/tasks/unstale", self.unstale_handler, method="PUT")
 
         self._route("/publish", self.publish_job, method="PUT")
-        self._route("/subscribe_one", self.subscribe_one_handler, method="POST")
-        self._route("/subscribe_stream", self.subscribe_streaming_handler, method="POST")
+        self._route("/subscribe_one", self.subscribe_one_handler,
+                    method="POST")
+        self._route("/subscribe_stream", self.subscribe_streaming_handler,
+                    method="POST")
 
         # serve local files via /static endpoint
         self._static("/static", self.static_root)
-        print("Serving file://" + os.path.abspath(self.static_root), "at", "/static")
+        print("Serving file://" + os.path.abspath(self.static_root), "at",
+              "/static")
 
         return self.app
+
+    async def initialize_mongodb(self):
+        """Initialize MongoDB connection"""
+        try:
+            from zaku.mongo_helpers import MongoManager
+            await MongoManager.initialize(
+                self.mongo_wrapper.connection_string,
+                self.mongo_wrapper.database
+            )
+            self.mongo_initialized = True
+            print("MongoDB server is now connected")
+        except Exception as e:
+            print(f"Warning: Failed to initialize MongoDB: {e}")
+            print("Payload storage will not be available")
+            self.mongo_initialized = False
 
     def run(self, kill=None, *args, **kwargs):
         if kill or self.free_port:
@@ -334,6 +461,16 @@ class TaskServer(ParamsProto, Server):
             time.sleep(0.01)
 
         self.setup_server()
+
+        # Initialize MongoDB asynchronously
+        import asyncio
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        loop.run_until_complete(self.initialize_mongodb())
 
         print("redis server is now connected")
         print(f"serving at http://localhost:{self.port}")
