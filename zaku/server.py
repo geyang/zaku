@@ -263,7 +263,7 @@ class TaskServer(ParamsProto, Server):
         help="set to 0.0.0.0 to enable remote (not localhost) connections.",
         env="ZAKU_HOST"
     )
-    port: int = 9000
+    port: int = 9001
     cors: str = "https://vuer.ai,https://dash.ml,http://localhost:8000,http://127.0.0.1:8000,*"
 
     # SSL Parameters

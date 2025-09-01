@@ -52,7 +52,7 @@ class Server:
     """Base TCP server"""
 
     host: str = "0.0.0.0"
-    port: int = 9000
+    port: int = 9001
     cors: str = "*"
     "Enable CORS"
 

@@ -169,8 +169,8 @@ class Job(SimpleNamespace):
         from redis.commands.search.index_definition import (IndexType,
                                                            IndexDefinition)
 
-        index_name = f"{prefix}:{name}"
-        index_prefix = f"{prefix}:{name}:"
+        index_name = f"{prefix}:{{{name}}}"
+        index_prefix = f"{prefix}:{{{name}}}:"
 
         schema = (
             NumericField("$.created_ts", as_name="created_ts"),
@@ -193,7 +193,7 @@ class Job(SimpleNamespace):
 
     @staticmethod
     async def remove_queue(r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"], queue, *, prefix):
-        index_name = f"{prefix}:{queue}"
+        index_name = f"{prefix}:{{{queue}}}"
         return await r.ft(index_name).dropindex()
 
     @staticmethod
@@ -218,7 +218,7 @@ class Job(SimpleNamespace):
         if job_id is None:
             job_id = str(uuid4())
 
-        entry_key = f"{prefix}:{queue}:{job_id}"
+        entry_key = f"{prefix}:{{{queue}}}:{job_id}"
 
         # Store job metadata in Redis
         p = r.pipeline()
@@ -229,7 +229,7 @@ class Job(SimpleNamespace):
         if payload:
             try:
                 mongo_client = get_mongo_client()
-                collection_name = f"{prefix}_{queue}"
+                collection_name = f"{prefix}_{{{queue}}}"
                 await mongo_client.store_payload(collection_name, job_id, payload)
             except Exception as e:
                 # If MongoDB fails, we should still store the job metadata
@@ -244,7 +244,7 @@ class Job(SimpleNamespace):
         from redis.commands.search.query import Query
         from redis.commands.search.result import Result
 
-        index_name = f"{prefix}:{queue}"
+        index_name = f"{prefix}:{{{queue}}}"
 
         # Create the query to count the files with the status 'created'
         q = Query("@status: { created }").paging(0, 0)  # Set paging to 0, 0 to avoid fetching any actual documents
@@ -272,7 +272,7 @@ class Job(SimpleNamespace):
         return {job_id}
         """
 
-        index_name = f"{prefix}:{queue}"
+        index_name = f"{prefix}:{{{queue}}}"
 
         # Execute Lua script
         current_time = str(time())
@@ -288,7 +288,7 @@ class Job(SimpleNamespace):
         payload = None
         try:
             mongo_client = get_mongo_client()
-            collection_name = f"{prefix}_{queue}"
+            collection_name = f"{prefix}_{{{queue}}}"
             payload = await mongo_client.retrieve_payload(collection_name, job_id)
         except Exception as e:
             # If MongoDB fails, we should still return the job metadata
@@ -311,20 +311,20 @@ class Job(SimpleNamespace):
         # Store payload in MongoDB first
         try:
             mongo_client = get_mongo_client()
-            collection_name = f"{prefix}_{queue}_topics"
+            collection_name = f"{prefix}_{{{queue}}}_topics"
             # Generate a unique ID for the topic message
             message_id = str(uuid4())
             await mongo_client.store_payload(collection_name, message_id, payload)
             
             # Publish the message ID to Redis (not the full payload)
-            entry_key = f"{prefix}:{queue}.topics:{topic_id}"
+            entry_key = f"{prefix}:{{{queue}}}.topics:{topic_id}"
             subscribers = await r.publish(entry_key, message_id.encode())
             return subscribers
         except Exception as e:
             # Fallback to direct Redis publish if MongoDB fails
             import logging
             logging.warning(f"Failed to store payload in MongoDB, falling back to direct Redis publish: {e}")
-            entry_key = f"{prefix}:{queue}.topics:{topic_id}"
+            entry_key = f"{prefix}:{{{queue}}}.topics:{topic_id}"
             subscribers = await r.publish(entry_key, payload)
             return subscribers
 
@@ -339,7 +339,7 @@ class Job(SimpleNamespace):
         timeout: float = 0.1,
     ) -> str:
         """Returns the first non-empty message."""
-        topic_name = f"{prefix}:{queue}.topics:{topic_id}"
+        topic_name = f"{prefix}:{{{queue}}}.topics:{topic_id}"
 
         end_time = perf_counter() + timeout
 
@@ -364,7 +364,8 @@ class Job(SimpleNamespace):
                             # Retrieve payload from MongoDB
                             try:
                                 mongo_client = get_mongo_client()
-                                collection_name = f"{prefix}_{queue}_topics"
+                                collection_name = (f"{prefix}_{{"
+                                                   f"{queue}}}_topics")
                                 payload = await mongo_client.retrieve_payload(collection_name, message_id)
                                 if payload:
                                     return payload
@@ -389,7 +390,7 @@ class Job(SimpleNamespace):
         prefix: str,
         timeout: float = 0.1,
     ):
-        topic_name = f"{prefix}:{queue}.topics:{topic_id}"
+        topic_name = f"{prefix}:{{{queue}}}.topics:{topic_id}"
 
         end_time = perf_counter() + timeout
 
@@ -414,7 +415,8 @@ class Job(SimpleNamespace):
                             # Retrieve payload from MongoDB
                             try:
                                 mongo_client = get_mongo_client()
-                                collection_name = f"{prefix}_{queue}_topics"
+                                collection_name = (f"{prefix}_{{"
+                                                   f"{queue}}}_topics")
                                 payload = await mongo_client.retrieve_payload(collection_name, message_id)
                                 if payload:
                                     yield payload
@@ -434,13 +436,13 @@ class Job(SimpleNamespace):
     async def remove(r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"], job_id, queue, *, prefix):
         if job_id == "*":
             try:
-                entry_name = f"{prefix}:{queue}:{job_id}"
+                entry_name = f"{prefix}:{{{queue}}}:{job_id}"
                 count = 0
                 async for key in r.scan_iter(entry_name):
                     await r.unlink(key)
                     count += 1
                 mongo_client = get_mongo_client()
-                collection_name = f"{prefix}_{queue}"
+                collection_name = f"{prefix}_{{{queue}}}"
                 await mongo_client.clear_collection(collection_name)
                 
                 return True
@@ -449,11 +451,11 @@ class Job(SimpleNamespace):
                 logging.warning(f"Wildcard deletion failed: {e}")
                 return False
 
-        entry_name = f"{prefix}:{queue}:{job_id}"
+        entry_name = f"{prefix}:{{{queue}}}:{job_id}"
         await r.unlink(entry_name)
         try:
             mongo_client = get_mongo_client()
-            collection_name = f"{prefix}_{queue}"
+            collection_name = f"{prefix}_{{{queue}}}"
             await mongo_client.delete_payload(collection_name, job_id)
         except Exception as e:
             import logging
@@ -463,7 +465,7 @@ class Job(SimpleNamespace):
 
     @staticmethod
     def reset(r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"], job_id, queue, *, prefix):
-        entry_name = f"{prefix}:{queue}:{job_id}"
+        entry_name = f"{prefix}:{{{queue}}}:{job_id}"
 
         p = r.pipeline()
         p = p.json().set(entry_name, "$.status", "created")
@@ -476,7 +478,7 @@ class Job(SimpleNamespace):
         from redis.commands.search.query import Query
         from redis.commands.search.result import Result
 
-        index_name = f"{prefix}:{queue}"
+        index_name = f"{prefix}:{{{queue}}}"
 
         if ttl:
             q = Query(f"@status: {{ in_progress }} @grab_ts:[0 {time() - ttl}]")  # .paging(0, 1)

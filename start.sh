@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
 
-python3 -m pip install --no-cache-dir -r /app/requirements.txt -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple
+python3 -m pip install --upgrade pip --timeout 60
+python3 -m pip install -r /app/requirements.txt --timeout 60
 python3 /app/zaku/server.py
