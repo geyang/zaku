@@ -65,6 +65,7 @@ class Server:
 
     WEBSOCKET_MAX_SIZE = 2**28
     REQUEST_MAX_SIZE = 2**28
+    TIMEOUT = 300
 
     def __post_init__(self):
         self.app = web.Application(client_max_size=self.REQUEST_MAX_SIZE)
@@ -118,7 +119,7 @@ class Server:
         ```
         """
         async def init_server():
-            runner = web.AppRunner(self.app)
+            runner = web.AppRunner(self.app, shutdown_timeout=500)
             await runner.setup()
             if not self.cert:
                 site = web.TCPSite(runner, self.host, self.port)
