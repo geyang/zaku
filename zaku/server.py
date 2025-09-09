@@ -1,12 +1,16 @@
+import asyncio
+
 import msgpack
 import redis
 from aiohttp import web
+import uvloop
 from params_proto import Proto, ParamsProto, Flag
 from dotenv import load_dotenv
 from base import Server
 from interfaces import Job
 
 load_dotenv()
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 
 class Redis(ParamsProto, prefix="redis", cli_parse=False):

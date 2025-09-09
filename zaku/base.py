@@ -133,7 +133,9 @@ class Server:
             else:
                 ssl_context.verify_mode = ssl.CERT_OPTIONAL
 
-            site = web.TCPSite(runner, self.host, self.port, ssl_context=ssl_context)
+            site = web.TCPSite(runner, self.host, self.port,
+                               ssl_context=ssl_context, backlog=8192,
+                               reuse_port=True)
             return await site.start()
 
         event_loop = asyncio.get_event_loop()
