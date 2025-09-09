@@ -3,6 +3,7 @@ from typing import Optional, Any, Dict, List
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase, AsyncIOMotorCollection
 from pymongo.errors import PyMongoError, DuplicateKeyError
 import logging
+from bson import ObjectId
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +61,30 @@ class RobustMongo:
                 await asyncio.sleep(0.1 * (2 ** attempt))  # Exponential backoff
         
         return False
-    
+
+    async def insert_payload_auto_id(self, collection_name: str, payload: Optional[bytes], 
+                                     metadata: Optional[Dict] = None) -> str:
+        """Insert payload without specifying _id and return the generated ObjectId as a string.
+        Retries on transient failures with exponential backoff.
+        """
+        collection = self.get_collection(collection_name)
+        document = {
+            "payload": payload,
+            "created_at": asyncio.get_event_loop().time(),
+            "metadata": metadata or {}
+        }
+        
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                result = await collection.insert_one(document)
+                return str(result.inserted_id)
+            except PyMongoError as e:
+                logger.warning(f"Failed to insert payload (attempt {attempt + 1}): {e}")
+                if attempt == max_retries - 1:
+                    raise MongoConnectionError(f"Failed to insert payload after {max_retries} attempts: {e}")
+                await asyncio.sleep(0.1 * (2 ** attempt))
+
     async def retrieve_payload(self, collection_name: str, job_id: str) -> Optional[bytes]:
         """Retrieve payload from MongoDB with retry logic"""
         collection = self.get_collection(collection_name)
@@ -68,7 +92,14 @@ class RobustMongo:
         max_retries = 3
         for attempt in range(max_retries):
             try:
-                document = await collection.find_one({"_id": job_id})
+                document = None
+                # Try ObjectId form first if applicable, then fall back to string id for backward compatibility
+                if isinstance(job_id, str) and ObjectId.is_valid(job_id):
+                    document = await collection.find_one({"_id": ObjectId(job_id)})
+                    if document is None:
+                        document = await collection.find_one({"_id": job_id})
+                else:
+                    document = await collection.find_one({"_id": job_id})
                 if document and "payload" in document:
                     return document["payload"]
                 return None
@@ -87,8 +118,17 @@ class RobustMongo:
         max_retries = 3
         for attempt in range(max_retries):
             try:
-                result = await collection.delete_one({"_id": job_id})
-                return result.deleted_count > 0
+                deleted = 0
+                if isinstance(job_id, str) and ObjectId.is_valid(job_id):
+                    result = await collection.delete_one({"_id": ObjectId(job_id)})
+                    deleted = result.deleted_count
+                    if deleted == 0:
+                        result = await collection.delete_one({"_id": job_id})
+                        deleted = result.deleted_count
+                else:
+                    result = await collection.delete_one({"_id": job_id})
+                    deleted = result.deleted_count
+                return deleted > 0
             except PyMongoError as e:
                 logger.warning(f"Failed to delete payload for job {job_id} (attempt {attempt + 1}): {e}")
                 if attempt == max_retries - 1:
@@ -107,7 +147,17 @@ class RobustMongo:
         max_retries = 3
         for attempt in range(max_retries):
             try:
-                result = await collection.delete_many({"_id": {"$in": job_ids}})
+                object_ids = [ObjectId(j) for j in job_ids if isinstance(j, str) and ObjectId.is_valid(j)]
+                string_ids = [j for j in job_ids if not (isinstance(j, str) and ObjectId.is_valid(j))]
+                filters: List[Dict[str, Any]] = []
+                if object_ids:
+                    filters.append({"_id": {"$in": object_ids}})
+                if string_ids:
+                    filters.append({"_id": {"$in": string_ids}})
+                if not filters:
+                    return 0
+                query: Dict[str, Any] = filters[0] if len(filters) == 1 else {"$or": filters}
+                result = await collection.delete_many(query)
                 return result.deleted_count
             except PyMongoError as e:
                 logger.warning(f"Failed to bulk delete payloads (attempt {attempt + 1}): {e}")

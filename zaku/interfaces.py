@@ -118,38 +118,32 @@ class Payload(SimpleNamespace):
             msg = msgpack.packb(data, use_bin_type=True)
         else:
             msg = msgpack.packb(payload, use_bin_type=True)
-
         return msg
 
     @staticmethod
-    def deserialize(payload) -> Dict:
-        unpacked = msgpack.unpackb(payload, raw=False)
-        is_greedy = unpacked.pop("_greedy", None)
-        if not is_greedy:
-            return unpacked
-        else:
-            data = {}
+    def deserialize(msg: bytes):
+        """Rehydrate the payload to a plain dict for compatibility with existing callers"""
+        data = msgpack.unpackb(msg)
 
-            for k, v in unpacked.items():
+        if data.get("_greedy"):
+            del data["_greedy"]
+            for k, v in data.items():
                 data[k] = ZData.decode(v)
-
             return data
+
+        return data
 
     @staticmethod
     def deserialize_unpacked(unpacked) -> Dict:
-        """used with msgpack.Unpacker in the streaming mode, to let the unpacker
-        handle the end of message. Handling it ourselves is messy.
-        """
-        is_greedy = unpacked.pop("_greedy", None)
-        if not is_greedy:
-            return unpacked
-        else:
+        """Rehydrate the payload to a plain dict from an unpacked msgpack generator."""
+        if unpacked.get("_greedy"):
+            del unpacked["_greedy"]
             data = {}
-
             for k, v in unpacked.items():
                 data[k] = ZData.decode(v)
 
             return data
+        return unpacked
 
 
 class Job(SimpleNamespace):
@@ -206,38 +200,35 @@ class Job(SimpleNamespace):
         payload: bytes = None,
         job_id: str = None,
         # ttl: float = None,
-    ) -> bool:
-        from uuid import uuid4
+    ) -> str:
+        # 1) Store payload in MongoDB first (use provided job_id if given)
+        mongo_client = get_mongo_client()
+        collection_name = f"{prefix}_{{{queue}}}"
 
+        # Insert even if payload is None to ensure an id is allocated
+        used_job_id = await mongo_client.insert_payload_auto_id(
+            collection_name, payload
+        )
+
+        # 2) Store job metadata in Redis using the job_id
         job = Job(
             created_ts=time(),
             status="created",
-            # value=value,
-            # ttl=ttl,
         )
-        if job_id is None:
-            job_id = str(uuid4())
-
-        entry_key = f"{prefix}:{{{queue}}}:{job_id}"
-
-        # Store job metadata in Redis
-        p = r.pipeline()
-        p.json().set(entry_key, ".", vars(job))
-        await p.execute(raise_on_error=False)
-        
-        # Store payload in MongoDB if provided
-        if payload:
+        entry_key = f"{prefix}:{{{queue}}}:{used_job_id}"
+        try:
+            p = r.pipeline()
+            p.json().set(entry_key, ".", vars(job))
+            await p.execute(raise_on_error=False)
+        except Exception:
+            # Rollback Mongo document if Redis write fails
             try:
-                mongo_client = get_mongo_client()
-                collection_name = f"{prefix}_{{{queue}}}"
-                await mongo_client.store_payload(collection_name, job_id, payload)
-            except Exception as e:
-                # If MongoDB fails, we should still store the job metadata
-                # but log the error for debugging
-                import logging
-                logging.warning(f"Failed to store payload in MongoDB for job {job_id}: {e}")
-        
-        return True
+                await mongo_client.delete_payload(collection_name, used_job_id)
+            except Exception:
+                pass
+            raise
+
+        return used_job_id
 
     @staticmethod
     async def count_files(r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"], queue, *, prefix) -> int:

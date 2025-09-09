@@ -186,7 +186,10 @@ class TaskQ(PrefixProto, cli=False):
             msgpack.packb(json, use_bin_type=True),
         )
         if res.status_code == 200:
-            return res.json()
+            try:
+                return int(res.text)
+            except Exception:
+                return None
         raise Exception(f"Failed to add job to {self.uri}.", res.content)
 
     def subscribe_one(self, topic: str, timeout=0.1):
@@ -224,14 +227,12 @@ class TaskQ(PrefixProto, cli=False):
 
     def add(self, value: Dict, *, key=None):
         """Append a job to the queue."""
-        if key is None:
-            key = str(uuid4())
-
         payload = Payload(**value)
 
         json = {
             "queue": self.name,
-            "job_id": key,
+            # keep compatibility: if caller passes a key, we include it; otherwise server will generate
+            **({"job_id": key} if key is not None else {}),
             "payload": payload.serialize(),
             # "ttl": self.ttl,
         }
@@ -240,8 +241,9 @@ class TaskQ(PrefixProto, cli=False):
             self.uri + "/tasks",
             msgpack.packb(json, use_bin_type=True),
         )
-        if res.status_code == 200:
-            return key
+        if res.status_code == 200 and res.content:
+            data = msgpack.loads(res.content)
+            return data.get("job_id", key)
         raise Exception(f"Failed to add job to {self.uri}.", res.content)
 
     def count(self):

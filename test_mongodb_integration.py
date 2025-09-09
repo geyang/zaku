@@ -35,7 +35,7 @@ class TestMongoDBIntegration:
         """Mock Redis client for testing"""
         mock_redis = Mock()
         # Mock the eval to return a job key that matches the expected format
-        mock_redis.eval = AsyncMock(return_value=[b"test_prefix:test_queue:job123"])
+        mock_redis.eval = AsyncMock(return_value=[b"test_prefix:{test_queue}:job123"])
         mock_redis.json.return_value = Mock()
         mock_redis.pipeline.return_value = Mock()
         # Mock publish method for pub/sub operations
@@ -117,9 +117,9 @@ class TestMongoDBIntegration:
                 job_id="job123"
             )
             
-            assert result is True
+            assert result == "job123"
             mock_mongo_client.store_payload.assert_called_once_with(
-                "test_prefix_test_queue", "job123", b"test_payload"
+                "test_prefix_{test_queue}", "job123", b"test_payload"
             )
     
     @pytest.mark.asyncio
@@ -136,7 +136,7 @@ class TestMongoDBIntegration:
             assert job_id == "job123"
             assert payload == b"test_payload"
             mock_mongo_client.retrieve_payload.assert_called_once_with(
-                "test_prefix_test_queue", "job123"
+                "test_prefix_{test_queue}", "job123"
             )
     
     @pytest.mark.asyncio
@@ -153,7 +153,7 @@ class TestMongoDBIntegration:
             
             assert result is True
             mock_mongo_client.delete_payload.assert_called_once_with(
-                "test_prefix_test_queue", "job123"
+                "test_prefix_{test_queue}", "job123"
             )
     
     async def test_job_publish_with_mongodb(self, mock_redis_client, mock_mongo_client):
@@ -168,27 +168,28 @@ class TestMongoDBIntegration:
         prefix = "test_prefix"
         
         # Mock the eval to return a job key that matches the expected format
-        mock_redis_client.eval = AsyncMock(return_value=[b"test_prefix:test_queue:job123"])
+        mock_redis_client.eval = AsyncMock(return_value=[b"test_prefix:{test_queue}:job123"])
         
-        # Call publish
-        result = await Job.publish(
-            mock_redis_client, 
-            queue, 
-            payload=payload, 
-            topic_id=topic_id, 
-            prefix=prefix
-        )
+        # Call publish with Mongo patched
+        with patch('zaku.interfaces.get_mongo_client', return_value=mock_mongo_client):
+            result = await Job.publish(
+                mock_redis_client, 
+                queue, 
+                payload=payload, 
+                topic_id=topic_id, 
+                prefix=prefix
+            )
         
         # Verify MongoDB was called
         mock_mongo_client.store_payload.assert_called_once()
         call_args = mock_mongo_client.store_payload.call_args
-        assert call_args[0][0] == f"{prefix}_{queue}_topics"  # collection name
+        assert call_args[0][0] == f"{prefix}_{{{queue}}}_topics"  # collection name
         assert call_args[0][2] == payload  # payload
         
         # Verify Redis publish was called with message ID (not payload)
         mock_redis_client.publish.assert_called_once()
         publish_call = mock_redis_client.publish.call_args
-        assert publish_call[0][0] == f"{prefix}:{queue}.topics:{topic_id}"
+        assert publish_call[0][0] == f"{prefix}:{{{queue}}}.topics:{topic_id}"
         # The published data should be a message ID (UUID string encoded as bytes)
         published_data = publish_call[0][1]
         assert isinstance(published_data, bytes)
@@ -214,19 +215,20 @@ class TestMongoDBIntegration:
         queue = "test_queue"
         prefix = "test_prefix"
         
-        # Call subscribe
-        result = await Job.subscribe(
-            mock_redis_client, 
-            queue, 
-            topic_id=topic_id, 
-            prefix=prefix,
-            timeout=0.1
-        )
+        # Call subscribe with Mongo patched
+        with patch('zaku.interfaces.get_mongo_client', return_value=mock_mongo_client):
+            result = await Job.subscribe(
+                mock_redis_client, 
+                queue, 
+                topic_id=topic_id, 
+                prefix=prefix,
+                timeout=0.1
+            )
         
         # Verify MongoDB was called to retrieve payload
         mock_mongo_client.retrieve_payload.assert_called_once()
         call_args = mock_mongo_client.retrieve_payload.call_args
-        assert call_args[0][0] == f"{prefix}_{queue}_topics"  # collection name
+        assert call_args[0][0] == f"{prefix}_{{{queue}}}_topics"  # collection name
         assert call_args[0][1] == "12345678-1234-1234-1234-123456789abc"  # message ID
         
         # Verify result is the retrieved payload
@@ -282,21 +284,22 @@ class TestMongoDBIntegration:
         queue = "test_queue"
         prefix = "test_prefix"
         
-        # Call subscribe_stream
+        # Call subscribe_stream with Mongo patched
         results = []
-        async for payload in Job.subscribe_stream(
-            mock_redis_client, 
-            queue, 
-            topic_id=topic_id, 
-            prefix=prefix,
-            timeout=0.1
-        ):
-            results.append(payload)
+        with patch('zaku.interfaces.get_mongo_client', return_value=mock_mongo_client):
+            async for payload in Job.subscribe_stream(
+                mock_redis_client, 
+                queue, 
+                topic_id=topic_id, 
+                prefix=prefix,
+                timeout=0.1
+            ):
+                results.append(payload)
         
         # Verify MongoDB was called to retrieve payload
         mock_mongo_client.retrieve_payload.assert_called_once()
         call_args = mock_mongo_client.retrieve_payload.call_args
-        assert call_args[0][0] == f"{prefix}_{queue}_topics"  # collection name
+        assert call_args[0][0] == f"{prefix}_{{{queue}}}_topics"  # collection name
         assert call_args[0][1] == "87654321-4321-4321-4321-cba987654321"  # message ID
         
         # Verify results contain the retrieved payload
