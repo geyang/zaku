@@ -204,9 +204,9 @@ class RobustMongo:
         max_retries = 3
         for attempt in range(max_retries):
             try:
-                result = await collection.delete_many({})
+                await collection.drop()
                 logger.info(
-                    f"Cleared collection '{collection_name}': {result.deleted_count} documents removed")
+                    f"Cleared collection '{collection_name}'")
                 return True
             except PyMongoError as e:
                 logger.warning(
