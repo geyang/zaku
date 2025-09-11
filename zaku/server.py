@@ -128,7 +128,7 @@ class Redis(ParamsProto, prefix="redis", cli_parse=False):
                 health_check_interval=self.health_check_interval,
                 socket_connect_timeout=self.socket_connect_timeout,
                 socket_keepalive=self.socket_keepalive,
-                # ssl=True
+                ssl=True
             )
 
 
