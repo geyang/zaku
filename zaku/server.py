@@ -1,7 +1,9 @@
 import asyncio
 
+import loguru
 import msgpack
 import redis
+
 from aiohttp import web
 import uvloop
 from params_proto import Proto, ParamsProto, Flag
@@ -10,6 +12,9 @@ from base import Server
 from interfaces import Job
 
 load_dotenv()
+
+logger = loguru.logger
+
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 
@@ -103,7 +108,6 @@ class Redis(ParamsProto, prefix="redis", cli_parse=False):
 
             self.sentinel = redis.asyncio.sentinel.Sentinel(
                 self.sentinel_hosts,
-                # redis_class=RobustRedis,
                 password=self.sentinel_password,
                 health_check_interval=self.health_check_interval,
                 socket_connect_timeout=self.socket_connect_timeout,
@@ -116,7 +120,6 @@ class Redis(ParamsProto, prefix="redis", cli_parse=False):
                                                        db=self.db)
 
         else:
-            # self.connection = RobustRedis(password=self.password, db=self.db, host=self.host, port=self.port)
             self.connection = redis.asyncio.Redis(
                 password=self.password,
                 db=self.db,
@@ -124,9 +127,8 @@ class Redis(ParamsProto, prefix="redis", cli_parse=False):
                 port=self.port,
                 health_check_interval=self.health_check_interval,
                 socket_connect_timeout=self.socket_connect_timeout,
-                retry_on_timeout=self.retry_on_timeout,
                 socket_keepalive=self.socket_keepalive,
-                ssl=True
+                # ssl=True
             )
 
 
@@ -267,7 +269,10 @@ class TaskServer(ParamsProto, Server):
         help="set to 0.0.0.0 to enable remote (not localhost) connections.",
         env="ZAKU_HOST"
     )
-    port: int = 9001
+    port: int = Proto(
+        9000,
+        env="ZAKU_PORT"
+    )
     cors: str = "https://vuer.ai,https://dash.ml,http://localhost:8000,http://127.0.0.1:8000,*"
 
     # SSL Parameters
@@ -284,10 +289,10 @@ class TaskServer(ParamsProto, Server):
     verbose = Flag("show the list of configurations during launch if True.")
 
     def print_info(self):
-        print("========= Arguments =========")
+        logger.info("========= Arguments =========")
         for k, v in vars(self).items():
-            print(f" {k} = {v},")
-        print("-----------------------------")
+            logger.info(f" {k} = {v},")
+        logger.info("-----------------------------")
 
     def __post_init__(self, _deps=None):
         if self.verbose:
@@ -297,10 +302,16 @@ class TaskServer(ParamsProto, Server):
 
         self.redis_wrapper = Redis(_deps)
         self.redis = self.redis_wrapper.connection
-
         # Initialize MongoDB for payload storage
         self.mongo_wrapper = MongoDB(_deps)
-        self.mongo_initialized = False
+        # Initialize MongoDB asynchronously
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        loop.run_until_complete(self.check_redis_available(self.redis))
+        loop.run_until_complete(self.initialize_mongodb())
 
     async def create_queue(self, request: web.Request):
         data = await request.json()
@@ -316,8 +327,11 @@ class TaskServer(ParamsProto, Server):
         msg = await request.read()
         data = msgpack.unpackb(msg)
         # print("==>", data)
-        await Job.add(self.redis, prefix=self.prefix, **data)
-        return web.Response(text="OK")
+        job_id = await Job.add(self.redis, prefix=self.prefix, **data)
+        # Return msgpack so client can parse without errors
+        return web.Response(
+            body=msgpack.packb({"job_id": job_id}, use_bin_type=True),
+            status=200)
 
     async def publish_job(self, request: web.Request):
         msg = await request.read()
@@ -347,7 +361,7 @@ class TaskServer(ParamsProto, Server):
             counts = await Job.count_files(self.redis, **data,
                                            prefix=self.prefix)
         except redis.exceptions.ResponseError as e:
-            if "no such index" in str(e):
+            if "No such index" in str(e):
                 return web.Response(status=200)
                 # return web.Response(text="no such index", status=404)
             raise e
@@ -362,7 +376,7 @@ class TaskServer(ParamsProto, Server):
             job_id, payload = await Job.take(self.redis, **data,
                                              prefix=self.prefix)
         except redis.exceptions.ResponseError as e:
-            if "no such index" in str(e):
+            if "No such index" in str(e):
                 return web.Response(status=200)
                 # return web.Response(text="no such index", status=404)
             raise e
@@ -404,7 +418,7 @@ class TaskServer(ParamsProto, Server):
                 await response.write_eof()
 
             except ConnectionResetError:
-                print("client disconnected.")
+                logger.info("client disconnected.")
                 return response
 
             return response
@@ -438,8 +452,8 @@ class TaskServer(ParamsProto, Server):
 
         # serve local files via /static endpoint
         self._static("/static", self.static_root)
-        print("Serving file://" + os.path.abspath(self.static_root), "at",
-              "/static")
+        logger.info("Serving file://" + os.path.abspath(self.static_root),
+                    "at", "/static")
 
         return self.app
 
@@ -451,12 +465,19 @@ class TaskServer(ParamsProto, Server):
                 self.mongo_wrapper.connection_string,
                 self.mongo_wrapper.database
             )
-            self.mongo_initialized = True
-            print("MongoDB server is now connected")
+            logger.info("mongoDB server is now connected")
         except Exception as e:
-            print(f"Warning: Failed to initialize MongoDB: {e}")
-            print("Payload storage will not be available")
-            self.mongo_initialized = False
+            logger.error(f"Error: Failed to initialize MongoDB: {e}")
+            logger.error("Payload storage will not be available")
+            raise
+
+    async def check_redis_available(self, client: redis.Redis):
+        try:
+            await client.ping()
+            logger.info(f"Redis server is connected")
+        except Exception as e:
+            logger.error(f"Redis unavailable: {e}")
+            raise
 
     def run(self, kill=None, *args, **kwargs):
         if kill or self.free_port:
@@ -467,19 +488,7 @@ class TaskServer(ParamsProto, Server):
             time.sleep(0.01)
 
         self.setup_server()
-
-        # Initialize MongoDB asynchronously
-        import asyncio
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-        loop.run_until_complete(self.initialize_mongodb())
-
-        print("redis server is now connected")
-        print(f"serving at http://localhost:{self.port}")
+        logger.info(f"serving at {self.host}:{self.port}")
         super().run()
 
 

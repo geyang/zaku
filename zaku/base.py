@@ -52,7 +52,7 @@ class Server:
     """Base TCP server"""
 
     host: str = "0.0.0.0"
-    port: int = 9001
+    port: int = 9000
     cors: str = "*"
     "Enable CORS"
 
@@ -119,7 +119,7 @@ class Server:
         ```
         """
         async def init_server():
-            runner = web.AppRunner(self.app, shutdown_timeout=500)
+            runner = web.AppRunner(self.app, shutdown_timeout=300)
             await runner.setup()
             if not self.cert:
                 site = web.TCPSite(runner, self.host, self.port)

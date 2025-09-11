@@ -2,14 +2,17 @@ from io import BytesIO
 from time import time, perf_counter
 from types import SimpleNamespace
 from typing import Literal, Any, Coroutine, Dict, Union, TYPE_CHECKING, Tuple
-from uuid import uuid4
+from bson import ObjectId
 
 import msgpack
 import numpy as np
+import loguru
 
 if TYPE_CHECKING:
     import redis
     import torch
+
+logger = loguru.logger
 
 
 def get_mongo_client():
@@ -18,7 +21,9 @@ def get_mongo_client():
         from mongo_helpers import MongoManager
         return MongoManager.get_client()
     except Exception as e:
-        raise RuntimeError(f"Failed to get MongoDB client: {e}. Make sure MongoDB is initialized.")
+        raise RuntimeError(
+            f"Failed to get MongoDB client: {e}. Make sure MongoDB is initialized.")
+
 
 ZType = Literal["numpy.ndarray", "torch.Tensor", "generic"]
 
@@ -157,11 +162,13 @@ class Job(SimpleNamespace):
     # ttl: float = None
 
     @staticmethod
-    async def create_queue(r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"], name, *, prefix):
+    async def create_queue(
+            r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"],
+            name, *, prefix):
         from redis import ResponseError
         from redis.commands.search.field import TagField, NumericField
         from redis.commands.search.index_definition import (IndexType,
-                                                           IndexDefinition)
+                                                            IndexDefinition)
 
         index_name = f"{prefix}:{{{name}}}"
         index_prefix = f"{prefix}:{{{name}}}:"
@@ -186,20 +193,22 @@ class Job(SimpleNamespace):
                 return
 
     @staticmethod
-    async def remove_queue(r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"], queue, *, prefix):
+    async def remove_queue(
+            r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"],
+            queue, *, prefix):
         index_name = f"{prefix}:{{{queue}}}"
         return await r.ft(index_name).dropindex()
 
     @staticmethod
     async def add(
-        r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"],
-        queue: str,
-        *,
-        prefix: str,
-        # value: Any,
-        payload: bytes = None,
-        job_id: str = None,
-        # ttl: float = None,
+            r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"],
+            queue: str,
+            *,
+            prefix: str,
+            # value: Any,
+            payload: bytes = None,
+            job_id: str = None,
+            # ttl: float = None,
     ) -> str:
         # 1) Store payload in MongoDB first (use provided job_id if given)
         mongo_client = get_mongo_client()
@@ -231,20 +240,25 @@ class Job(SimpleNamespace):
         return used_job_id
 
     @staticmethod
-    async def count_files(r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"], queue, *, prefix) -> int:
+    async def count_files(
+            r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"],
+            queue, *, prefix) -> int:
         from redis.commands.search.query import Query
         from redis.commands.search.result import Result
 
         index_name = f"{prefix}:{{{queue}}}"
 
         # Create the query to count the files with the status 'created'
-        q = Query("@status: { created }").paging(0, 0)  # Set paging to 0, 0 to avoid fetching any actual documents
+        q = Query("@status: { created }").paging(0,
+                                                 0)  # Set paging to 0, 0 to avoid fetching any actual documents
         result: Result = await r.ft(index_name).search(q)
 
         return result.total  # Return the total number of matching documents
 
     @staticmethod
-    async def take(r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"], queue, *, prefix) -> Tuple[Any, Any]:
+    async def take(
+            r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"],
+            queue, *, prefix) -> Tuple[Any, Any]:
         # Lua script for atomic operation
 
         lua_script = """
@@ -272,31 +286,33 @@ class Job(SimpleNamespace):
         if not result or result[0] is None:
             return None, None
 
-        job_key = result[0].decode() if isinstance(result[0], bytes) else result[0]
-        job_id = job_key[len(index_name) + 1 :]
-        
+        job_key = result[0].decode() if isinstance(result[0], bytes) else \
+        result[0]
+        job_id = job_key[len(index_name) + 1:]
+
         # Retrieve payload from MongoDB
         payload = None
         try:
             mongo_client = get_mongo_client()
             collection_name = f"{prefix}_{{{queue}}}"
-            payload = await mongo_client.retrieve_payload(collection_name, job_id)
+            payload = await mongo_client.retrieve_payload(collection_name,
+                                                          job_id)
         except Exception as e:
             # If MongoDB fails, we should still return the job metadata
             # but log the error for debugging
-            import logging
-            logging.warning(f"Failed to retrieve payload from MongoDB for job {job_id}: {e}")
+            logger.warning(
+                f"Failed to retrieve payload from MongoDB for job {job_id}: {e}")
 
         return job_id, payload
 
     @staticmethod
     async def publish(
-        r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"],
-        queue: str,
-        *,
-        payload: bytes,
-        topic_id: str,
-        prefix: str,
+            r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"],
+            queue: str,
+            *,
+            payload: bytes,
+            topic_id: str,
+            prefix: str,
     ) -> Coroutine:
         """Publish a job to a key --- this is not saved in the queue and is ephemeral."""
         # Store payload in MongoDB first
@@ -304,17 +320,19 @@ class Job(SimpleNamespace):
             mongo_client = get_mongo_client()
             collection_name = f"{prefix}_{{{queue}}}_topics"
             # Generate a unique ID for the topic message
-            message_id = str(uuid4())
-            await mongo_client.store_payload(collection_name, message_id, payload)
+            used_job_id = await mongo_client.insert_payload_auto_id(
+                collection_name, payload
+            )
             
             # Publish the message ID to Redis (not the full payload)
             entry_key = f"{prefix}:{{{queue}}}.topics:{topic_id}"
-            subscribers = await r.publish(entry_key, message_id.encode())
+            subscribers = await r.publish(entry_key, used_job_id.encode())
             return subscribers
         except Exception as e:
             # Fallback to direct Redis publish if MongoDB fails
-            import logging
-            logging.warning(f"Failed to store payload in MongoDB, falling back to direct Redis publish: {e}")
+            logger.warning(
+                f"Failed to store payload in MongoDB, falling back to direct "
+                f"Redis publish: {e}")
             entry_key = f"{prefix}:{{{queue}}}.topics:{topic_id}"
             subscribers = await r.publish(entry_key, payload)
             return subscribers
@@ -322,12 +340,12 @@ class Job(SimpleNamespace):
     # todo: implement streaming mode.
     @staticmethod
     async def subscribe(
-        r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"],
-        queue: str,
-        *,
-        topic_id: str,
-        prefix: str,
-        timeout: float = 0.1,
+            r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"],
+            queue: str,
+            *,
+            topic_id: str,
+            prefix: str,
+            timeout: float = 0.1,
     ) -> str:
         """Returns the first non-empty message."""
         topic_name = f"{prefix}:{{{queue}}}.topics:{topic_id}"
@@ -346,12 +364,13 @@ class Job(SimpleNamespace):
                     pass
                 elif message["type"] == "message":
                     message_data = message["data"]
-                    
+
                     # Try to decode as message ID first (MongoDB integration)
                     try:
                         message_id = message_data.decode() if isinstance(message_data, bytes) else message_data
-                        # Check if this looks like a UUID (MongoDB message ID)
-                        if len(message_id) == 36 and '-' in message_id:
+                        # Check if this looks like a Object_id (MongoDB message
+                        # ID)
+                        if ObjectId.is_valid(message_id):
                             # Retrieve payload from MongoDB
                             try:
                                 mongo_client = get_mongo_client()
@@ -361,8 +380,9 @@ class Job(SimpleNamespace):
                                 if payload:
                                     return payload
                             except Exception as e:
-                                import logging
-                                logging.warning(f"Failed to retrieve payload from MongoDB for message {message_id}: {e}")
+                                logger.warning(
+                                    f"Failed to retrieve payload from "
+                                    f"MongoDB for message {message_id}: {e}")
                                 # Fallback to returning the message data as-is
                                 return message_data
                         else:
@@ -374,12 +394,12 @@ class Job(SimpleNamespace):
 
     @staticmethod
     async def subscribe_stream(
-        r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"],
-        queue: str,
-        *,
-        topic_id: str,
-        prefix: str,
-        timeout: float = 0.1,
+            r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"],
+            queue: str,
+            *,
+            topic_id: str,
+            prefix: str,
+            timeout: float = 0.1,
     ):
         topic_name = f"{prefix}:{{{queue}}}.topics:{topic_id}"
 
@@ -397,12 +417,12 @@ class Job(SimpleNamespace):
                     pass
                 elif message["type"] == "message":
                     message_data = message["data"]
-                    
+
                     # Try to decode as message ID first (MongoDB integration)
                     try:
                         message_id = message_data.decode() if isinstance(message_data, bytes) else message_data
                         # Check if this looks like a UUID (MongoDB message ID)
-                        if len(message_id) == 36 and '-' in message_id:
+                        if ObjectId.is_valid(message_id):
                             # Retrieve payload from MongoDB
                             try:
                                 mongo_client = get_mongo_client()
@@ -412,8 +432,9 @@ class Job(SimpleNamespace):
                                 if payload:
                                     yield payload
                             except Exception as e:
-                                import logging
-                                logging.warning(f"Failed to retrieve payload from MongoDB for message {message_id}: {e}")
+                                logger.error(
+                                    f"Failed to retrieve payload from "
+                                    f"MongoDB for message {message_id}: {e}")
                                 # Fallback to yielding the message data as-is
                                 yield message_data
                         else:
@@ -424,7 +445,9 @@ class Job(SimpleNamespace):
                         yield message_data
 
     @staticmethod
-    async def remove(r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"], job_id, queue, *, prefix):
+    async def remove(
+            r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"],
+            job_id, queue, *, prefix):
         if job_id == "*":
             try:
                 entry_name = f"{prefix}:{{{queue}}}:{job_id}"
@@ -435,11 +458,10 @@ class Job(SimpleNamespace):
                 mongo_client = get_mongo_client()
                 collection_name = f"{prefix}_{{{queue}}}"
                 await mongo_client.clear_collection(collection_name)
-                
+
                 return True
             except Exception as e:
-                import logging
-                logging.warning(f"Wildcard deletion failed: {e}")
+                logger.warning(f"Wildcard deletion failed: {e}")
                 return False
 
         entry_name = f"{prefix}:{{{queue}}}:{job_id}"
@@ -449,13 +471,14 @@ class Job(SimpleNamespace):
             collection_name = f"{prefix}_{{{queue}}}"
             await mongo_client.delete_payload(collection_name, job_id)
         except Exception as e:
-            import logging
-            logging.warning(f"Failed to remove payload from MongoDB for job {job_id}: {e}")
-        
+            logger.warning(
+                f"Failed to remove payload from MongoDB for job {job_id}: {e}")
+
         return True
 
     @staticmethod
-    def reset(r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"], job_id, queue, *, prefix):
+    def reset(r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"],
+              job_id, queue, *, prefix):
         entry_name = f"{prefix}:{{{queue}}}:{job_id}"
 
         p = r.pipeline()
@@ -465,14 +488,17 @@ class Job(SimpleNamespace):
         return p.execute(raise_on_error=False)
 
     @staticmethod
-    async def unstale_tasks(r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"], queue, *, prefix, ttl=None):
+    async def unstale_tasks(
+            r: Union["redis.asyncio.Redis", "redis.sentinel.asyncio.Redis"],
+            queue, *, prefix, ttl=None):
         from redis.commands.search.query import Query
         from redis.commands.search.result import Result
 
         index_name = f"{prefix}:{{{queue}}}"
 
         if ttl:
-            q = Query(f"@status: {{ in_progress }} @grab_ts:[0 {time() - ttl}]")  # .paging(0, 1)
+            q = Query(
+                f"@status: {{ in_progress }} @grab_ts:[0 {time() - ttl}]")  # .paging(0, 1)
         else:
             q = Query("@status: { in_progress }")  # .paging(0, 1)
 

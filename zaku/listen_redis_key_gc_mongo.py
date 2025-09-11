@@ -10,7 +10,7 @@ import loguru
 from interfaces import get_mongo_client
 from server import TaskServer
 
-logging = loguru.logger
+logger = loguru.logger
 load_dotenv()
 
 
@@ -33,7 +33,7 @@ async def listen_with_batch_processing(batch_size=1000):
         pubsub = r.pubsub()
         await pubsub.psubscribe(f'__keyevent@{REDIS_DB}__:expired')
 
-        logging.info(
+        logger.info(
             "Start listening for key"
             " expiration events (batch processing mode)..."
         )
@@ -53,12 +53,12 @@ async def listen_with_batch_processing(batch_size=1000):
                     if keys_buffer:
                         timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
                         batch_count = len(keys_buffer)
-                        logging.info(
+                        logger.info(
                             f"[{timestamp}] Batch processing {batch_count} "
                             f"keys，In total:"
                             f" {total_processed}")
                         collection_name_job_ids_mapping = defaultdict(list)
-                        logging.info(f"keys info {keys_buffer}")
+                        logger.info(f"keys info {keys_buffer}")
                         for item in keys_buffer:
                             if ":" in item:
                                 collection_name, job_id = item.rsplit(":", 1)
@@ -69,21 +69,21 @@ async def listen_with_batch_processing(batch_size=1000):
                             mongo_client = get_mongo_client()
                             for collection_name, jobs in (
                                     collection_name_job_ids_mapping.items()):
-                                logging.info(f"start gc document payload: "
-                                             f"{collection_name}-->{jobs}")
+                                logger.info(f"start gc document payload: "
+                                            f"{collection_name}-->{jobs}")
                                 await mongo_client.bulk_delete_payloads(
                                     collection_name, jobs)
-                                logging.info(f"{collection_name} gc "
-                                             f"successful")
+                                logger.info(f"{collection_name} gc "
+                                            f"successful")
                             await mongo_client.close()
                         keys_buffer.clear()
                         last_print_time = current_time
 
     except KeyboardInterrupt:
-        logging.info(f"Listening stopped. All processed {total_processed} "
-                     f"keys")
+        logger.info(f"Listening stopped. All processed {total_processed} "
+                    f"keys")
     except Exception as e:
-        logging.error(f"Error: {e}", exc_info=True)
+        logger.error(f"Error: {e}", exc_info=True)
 
 
 if __name__ == "__main__":
