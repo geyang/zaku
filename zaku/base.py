@@ -51,8 +51,8 @@ async def handle_file_request(request, root, filename=None):
 class Server:
     """Base TCP server"""
 
-    host: str = "localhost"
-    port: int = 8012
+    host: str = "0.0.0.0"
+    port: int = 9000
     cors: str = "*"
     "Enable CORS"
 
@@ -65,6 +65,7 @@ class Server:
 
     WEBSOCKET_MAX_SIZE = 2**28
     REQUEST_MAX_SIZE = 2**28
+    TIMEOUT = 300
 
     def __post_init__(self):
         self.app = web.Application(client_max_size=self.REQUEST_MAX_SIZE)
@@ -118,7 +119,7 @@ class Server:
         ```
         """
         async def init_server():
-            runner = web.AppRunner(self.app)
+            runner = web.AppRunner(self.app, shutdown_timeout=300)
             await runner.setup()
             if not self.cert:
                 site = web.TCPSite(runner, self.host, self.port)
@@ -132,7 +133,9 @@ class Server:
             else:
                 ssl_context.verify_mode = ssl.CERT_OPTIONAL
 
-            site = web.TCPSite(runner, self.host, self.port, ssl_context=ssl_context)
+            site = web.TCPSite(runner, self.host, self.port,
+                               ssl_context=ssl_context, backlog=8192,
+                               reuse_port=True)
             return await site.start()
 
         event_loop = asyncio.get_event_loop()

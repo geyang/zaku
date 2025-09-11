@@ -6,7 +6,7 @@
       <excludeFolder url="file://$MODULE_DIR$/dist" />
       <excludeFolder url="file://$MODULE_DIR$/zaku.egg-info" />
     </content>
-    <orderEntry type="jdk" jdkName="vuer-mujoco" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.11 (zaku_demo) (2)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="PackageRequirementsSettings">

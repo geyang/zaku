@@ -26,7 +26,17 @@ Running tests is the best way to learn how to use a library. To run the tests in
    brew install redis-stack-server
    redis-stack-server
    ```
-3. run the zaku task queue at port `9000`:
+3. install and run the `mongoDB`:
+   ```shell
+   brew tap mongodb/brew
+   brew install mongodb-community
+   brew services start mongodb-community
+   ```
+4. add .env Environmental variable file:
+   ```text
+   Configure the environment variables according to the env.template file
+   ```
+5. run the zaku task queue at port `9000`:
    ```shell
    zaku --port 9000 --verbose
    ```
